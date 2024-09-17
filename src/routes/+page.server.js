@@ -1,5 +1,5 @@
 /** @type {import('./$types').PageServerLoad} */
-import ollama from 'ollama/browser'
+import ollama from 'ollama'
 
 //pulls current models available in Ollama
 
