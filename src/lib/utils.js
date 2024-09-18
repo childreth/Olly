@@ -20,6 +20,7 @@ export async function getIcon(weather) {
       - snow
       - thunderstorms
       - windy
+      </icon names>
 
         `},
       { role: 'user', content: weather }

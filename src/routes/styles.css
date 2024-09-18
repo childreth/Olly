@@ -1,7 +1,7 @@
 :root {
 
-	--hue: 150;
-	--surface: hsl(var(--hue), 78%, 93%);
+	--hue: 290;
+	--surface: hsl(var(--hue), 78%, 96%);
 
 	--primary: hsl(var(--hue), 60%, 6%);
 	--secondary: hsl(var(--hue), 48%, 25%);
