@@ -6,8 +6,8 @@
   import * as Utils from "$lib/utils.js";
   import Button from "$lib/components/button.svelte";
 
-  export let data;
-  const modelList = data.modelNames;
+  // export let data;
+  // let modelList = data.modelNames;
 
   let selectedModel = "llama3.1:latest";
   let activeModel = "";
@@ -24,6 +24,8 @@
   const city = "Westford,MA";
   let name = "Chris";
 
+  let loadModelNames = [];
+
   let isStreaming = false;
   let abortController = new AbortController();
 
@@ -38,8 +40,10 @@
     const imagePreview = document.querySelector("#thumbnails");
 
     Utils.getCoordinates(city);
+    loadModels()
 
     const fileInput = document.querySelector("#file");
+
     fileInput.addEventListener("change", (e) => {
       const file = fileInput.files[0];
       const reader = new FileReader();
@@ -60,7 +64,27 @@
       });
       reader.readAsDataURL(file);
     });
+    
+
+    
   });
+
+  async function loadModels() {
+    const ollama = new Ollama({ host: "http://localhost:11434" });
+
+    let models = await ollama.list();
+    let theModelsView = models.models;
+   
+    
+    loadModelNames = theModelsView.map(modelName => {
+        return modelName.name;
+    })
+    loadModelNames.unshift("Fal - Flux");
+    console.log("loadModelNames:", loadModelNames);
+    //manually add names here
+   
+
+};
 
   async function callOllama() {
     const ollama = new Ollama({ host: "http://localhost:11434" });
@@ -186,7 +210,7 @@
     <label for="pet-select" class="visualhide">Choose a model:</label>
 
     <select bind:value={selectedModel} on:change={changeModel}>
-      {#each modelList as question}
+      {#each loadModelNames as question}
         <option value={question}>
           {question}
         </option>
@@ -199,11 +223,13 @@
     <section id="" class="response" aria-live="polite" role="log">
       {@html responseMarked}
     </section>
+
   </div>
   <!-- <div id="settings">
+    <button on:click={loadModels}>Load Models</button>
     <h2>Available Models</h2>
     <ul>
-      {#each modelList as model}
+      {#each loadModelNames as model}
         <li>{model}</li>
       {/each}
     </ul>
@@ -222,12 +248,7 @@
         <label id="promptLabel" for="prompt" class="visualhide"
           >Add your prompt:</label
         >
-        <!-- <textarea
-                      id="prompt"`	wwd
-                      name="prompt"
-                      placeholder="Ask a question..."
-                      >Tell me a dad joke</textarea
-                  > -->
+
         <div
           id="prompt"
           role="textbox"
@@ -239,8 +260,7 @@
           spellcheck="false"
           placeholder="How can I help?"
         >
-          <!-- <span>Start with a <mark>3 hour delay</mark> followed by
-                      <mark>a conditional split</mark> for SMS -->
+
         </div>
       </div>
 

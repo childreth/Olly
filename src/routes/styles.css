@@ -1,19 +1,19 @@
 :root {
 
+	--hue: 150;
+	--surface: hsl(var(--hue), 78%, 93%);
 
-	--surface: hsl(174, 78%, 93%);
+	--primary: hsl(var(--hue), 60%, 6%);
+	--secondary: hsl(var(--hue), 48%, 25%);
+	--tertiary: hsl(var(--hue), 37%, 78%);
 
-	--primary: hsl(170, 60%, 6%);
-	--secondary: hsl(175, 48%, 25%);
-	--tertiary: hsl(171, 37%, 78%);
+	--primary-dark: hsl(var(--hue), 78%, 2%);
 
-	--primary-dark: hsl(171, 78%, 2%);
-
-	--boxShadow: inset 0 0 12px 0 hsl(174, 32%, 32%);
+	--boxShadow: inset 0 0 12px 0 hsl(var(--hue), 32%, 32%);
 	--shadow1: 1px 1px 0px 0px rgba(0,0,0,1);
 
 	--link: var(--secondary);
-	--linkDark: #1D1A16;
+	--linkDark: hsl(103, 14%, 10%);
 	--buttonbg: var(--primary);
 	--buttonShadow: var(--primary-dark);
 	--buttonHover:var(--primary-dark);
@@ -457,7 +457,7 @@ select:hover {
 
 		.fakeTextarea:empty::before {
 			content: 'Hello...';
-			color: #628483;
+			color: var(--secondary);
 		}
 
 		.fakeTextarea:focus-visible {

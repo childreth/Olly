@@ -1,9 +1,11 @@
 /** @type {import('./$types').PageServerLoad} */
-import ollama from 'ollama'
+import { Ollama } from "ollama/browser";
 
 //pulls current models available in Ollama
 
 export async function load() {
+    const ollama = new Ollama({ host: "http://localhost:11434" });
+
     let models = await ollama.list();
     let theModels = models.models;
    
