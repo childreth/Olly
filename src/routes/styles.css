@@ -45,6 +45,7 @@ body {
 	align-items: center;
 	justify-content: center;
 	background-color: var(--surface);
+	background-size: cover;
 	
 	font-family: var(--bodyFamily);
 	line-height: 1.5;
@@ -706,7 +707,7 @@ input[type="file"] {
 	line-height: 1rem;
 	background-color: var(--surface);
 	margin: .75rem 0 1rem 0;
-	padding:0 .25rem;
+	padding:.125rem .5rem;
 
 	
 }

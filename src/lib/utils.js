@@ -8,7 +8,7 @@ export async function getIcon(weather) {
   const response = await ollama.chat({
     model: 'gemma2:2b',
     messages: [
-      { role: 'system', content: `You will be provided with a weather condition and will return an icon name from the list below that represents the weather condition provided.  Return only the icon names from the list.  If you are unable to find a match, return the icon name for 'sunny'.
+      { role: 'system', content: `You will be provided with a weather condition and will return an icon name from the list below that represents the weather condition provided.  Return only the icon names from the list.  If you are unable to find a match, return the icon name for 'sunny' Read through the weather condition and list twice before sending a response.
       <icon names>
       - clear_night
       - partly_cloudy_night

@@ -5,6 +5,7 @@
   import { marked } from "marked";
   import * as Utils from "$lib/utils.js";
   import Button from "$lib/components/button.svelte";
+  
 
   // export let data;
   // let modelList = data.modelNames;
@@ -33,7 +34,8 @@
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
       * You can be playful in the response, occasionally add a pun and liberal use of emojis.
       * When diagram charts are requested by the user create them with mermaid.js markdown.
-      * If the user asks 'shall we play a game?', always respond with "You know what happen the last time right"'`;
+      * Read the user's question again before responding.
+      * When a user asks 'shall we play a game?' include "Global Thermonuclear War" as one of the games.`;
 
   onMount(async () => {
     const sendBtn = document.querySelector("#sendBtn");
@@ -165,7 +167,7 @@
       } finally {
         isStreaming = false;
         Utils.addCopyButtonToPre();
-        streamedGreeting += `<hr>`;
+        streamedGreeting += `<p></p>`;
       }
     }
 
@@ -190,6 +192,8 @@
     countConvo = 0;
     chatConvo = [];
     theImage = [];
+    tokenCount = 0;
+    tokenSpeed = 0;
     document.querySelector("#thumbnails").innerHTML = "";
   }
   function stopStreaming() {
@@ -200,6 +204,7 @@
       sendBtn.textContent = "Send";
     }
   }
+
 </script>
 
 <header id="title">

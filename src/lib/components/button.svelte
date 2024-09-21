@@ -9,7 +9,18 @@
 
 <style>
 
-  
+	
+
+  #buttonWrap {
+    padding:2px;
+    background-color: var(--buttonbg);
+	border-radius: 12rem;
+  }
+    @keyframes rotateGradient {
+	to {
+      --border-angle: 1turn;
+    }
+  }
   
   button {
 	/* background-image: linear-gradient(to right, #4776E6 0%, #8E54E9 51%, #4776E6 100%); */
@@ -54,6 +65,8 @@
 	background: var(--buttonbg) url('$lib/images/stop.svg') no-repeat .75rem 50%;
 	
   }
+
+
 
 
   
