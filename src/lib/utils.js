@@ -6,21 +6,21 @@ export async function getIcon(weather) {
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
   const response = await ollama.chat({
-    model: 'gemma2:2b',
+    model: 'qwen2.5:1.5b',
     messages: [
-      { role: 'system', content: `You will be provided with a weather condition and will return an icon name from the list below that represents the weather condition provided.  Return only the icon names from the list.  If you are unable to find a match, return the icon name for 'sunny' Read through the weather condition and list twice before sending a response.
-      <icon names>
+      { role: 'system', content: `You job is to match a weather condition to an icon name in the list below.  You will be provided with a weather condition and will return an icon name from the list below that represents the weather condition provided.  Return only the icon names from the list. Do not includ or add any other text.  If you are unable to find a match, return the icon name for 'sad_face' Read through the weather condition and list twice before sending a response.
+      <icon list names>
       - clear_night
       - partly_cloudy_night
       - clear_foggy
       - foggy
       - sunny
-      - partly_cloudy_sun
+      - partly_cloudy_sunny
       - rain
       - snow
       - thunderstorms
       - windy
-      </icon names>
+      </icon list names>
 
         `},
       { role: 'user', content: weather }

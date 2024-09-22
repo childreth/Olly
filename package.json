@@ -15,6 +15,7 @@
   "dependencies": {
     "@fal-ai/serverless-client": "^0.14.2",
     "@tauri-apps/api": "^1",
+    "@tauri-apps/plugin-dialog": "^2.0.0-rc.1",
     "marked": "^14.1.2",
     "ollama": "^0.5.9"
   },

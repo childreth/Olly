@@ -1,74 +1,88 @@
 <script>
-	// logic goes here
-    export let label='default'
-    export let elID
+  // logic goes here
+  export let label = "default";
+  export let elID;
 </script>
 
 <!-- markup (zero or more items) goes here -->
-<div id='buttonWrap'><button on:click id={elID}>{label}</button></div>
+<div id="buttonWrap" class="button-border button-anime {elID}">
+  <button on:click id={elID}>{label}</button>
+</div>
 
 <style>
-
-	
-
   #buttonWrap {
-    padding:2px;
-    background-color: var(--buttonbg);
-	border-radius: 12rem;
+    position: relative;
+    z-index: 0;
+	
+	
   }
-    @keyframes rotateGradient {
-	to {
-      --border-angle: 1turn;
+  @property --angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+  
+  .button-border:after {
+    content: "";
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    top: 50%;
+    left: 50%;
+    border-radius: 12rem;
+    transform: translate(-50%, -50%);
+    background-color: var(--primary);
+    z-index: -1;
+    padding: 2px;
+	transition: background .3s ease-in-out;
+	
+  }
+
+  #buttonWrap.stopBtn:after {
+    background: conic-gradient(
+      from var(--angle) at 50% 50%,
+      var(--primary) 0% 25%,
+      var(--surface) 60% 100%
+	  ),
+	  url('$lib/images/noise.svg');
+    animation: spin 1s linear infinite;
+	transition: background .3s ease-in-out;
+  }
+  @keyframes spin {
+    from {
+      --angle: 0deg;
+    }
+    to {
+      --angle: 360deg;
     }
   }
-  
+
   button {
-	/* background-image: linear-gradient(to right, #4776E6 0%, #8E54E9 51%, #4776E6 100%); */
-	/* background-image: linear-gradient(to bottom, var(--buttonbg) 0%, var(--buttonbg) 100%); */
-  
-	background: var(--buttonbg) url('$lib/images/arrow-up.svg') no-repeat .75rem 50%;
-	/* box-shadow: inset 0 -2px 8px 0 var(--buttonShadow); */
-	background-size: 24px auto;
-	font-family: var(--bodyFamily);
-	padding: 0rem 1.25rem .1rem 2.5rem;
-	min-height: 2.5rem;
-	/* min-width: 10ch; */
-	color: var(--surface);
-	font-size: 1.25rem;
-	font-weight: 700;
-	line-height: 2.75rem;
-	border-radius: 12rem;
-	display: flex;
-	gap: 4px;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border: none;
-	transition: all cubic-bezier(.67, -0.04, .31, 1.04) 0.1s;
-	position: relative;
-	
-  
-  
-  
-  }
-  
-  button:hover {
-
+    background: var(--buttonbg) url("$lib/images/arrow-up.svg") no-repeat
+      0.75rem 50%;
+    /* box-shadow: inset 0 -2px 8px 0 var(--buttonShadow); */
+    background-size: 24px auto;
+    font-family: var(--bodyFamily);
+    padding: 0rem 1.25rem 0.1rem 2.5rem;
+    min-height: 2.5rem;
+    min-width: 8ch;
+    /* min-width: 10ch; */
+    color: var(--surface);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 2.75rem;
+    border-radius: 12rem;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    transition: all cubic-bezier(0.67, -0.04, 0.31, 1.04) 0.1s;
   }
 
- 
-  button:disabled {
-    cursor:not-allowed;
+  #stopBtn {
+    background: var(--buttonbg) url("$lib/images/stop.svg") no-repeat 0.75rem
+      50%;
   }
-
-  button#stopBtn {
-	background: var(--buttonbg) url('$lib/images/stop.svg') no-repeat .75rem 50%;
-	
-  }
-
-
-
-
-  
-  
 </style>

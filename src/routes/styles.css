@@ -137,6 +137,7 @@ header {
 		background: transparent  url('$lib/images/weather/sunny.svg') no-repeat left center;
 		background-size: 24px;
 		padding:0 2rem;
+		line-height: 1.4rem;
 		box-sizing: border-box;
 
 	}
@@ -407,6 +408,7 @@ select:hover {
 	align-items: center;
 	background-color: var(--surface);
 	position: relative;
+	z-index: 0;
 
 	.input {
 		display: flex;

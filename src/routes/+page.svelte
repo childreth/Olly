@@ -5,10 +5,43 @@
   import { marked } from "marked";
   import * as Utils from "$lib/utils.js";
   import Button from "$lib/components/button.svelte";
-  
 
-  // export let data;
-  // let modelList = data.modelNames;
+  import { open } from "@tauri-apps/api/dialog";
+  import { confirm } from "@tauri-apps/api/dialog";
+  // Open a selection dialog for image files
+  async function showDialog() {
+    try {
+      const selected = await open({
+        multiple: true,
+        filters: [
+          {
+            name: "Image",
+            extensions: ["png", "jpeg"],
+          },
+        ],
+      });
+
+      if (Array.isArray(selected)) {
+        console.log("User selected multiple files:", selected);
+        // Handle multiple file selection
+      } else if (selected === null) {
+        console.log("User cancelled the selection");
+        // Handle cancellation
+      } else {
+        console.log("User selected a single file:", selected);
+        // Handle single file selection
+      }
+    } catch (error) {
+      console.error("Error opening dialog:", error);
+    }
+  }
+  async function confirmDialog() {
+    try {
+      confirm("Are you sure?", "Tauri");
+    } catch (error) {
+      console.error("Error opening dialog:", error);
+    }
+  }
 
   let selectedModel = "llama3.1:latest";
   let activeModel = "";
@@ -29,6 +62,7 @@
 
   let isStreaming = false;
   let abortController = new AbortController();
+  const ollama = new Ollama({ host: "http://localhost:11434" });
 
   const systemMsg = `You are a helpful assistant named 'Olly' who always responds to the user's name ${name}. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
@@ -42,7 +76,7 @@
     const imagePreview = document.querySelector("#thumbnails");
 
     Utils.getCoordinates(city);
-    loadModels()
+    loadModels();
 
     const fileInput = document.querySelector("#file");
 
@@ -66,9 +100,6 @@
       });
       reader.readAsDataURL(file);
     });
-    
-
-    
   });
 
   async function loadModels() {
@@ -76,20 +107,18 @@
 
     let models = await ollama.list();
     let theModelsView = models.models;
-   
-    
-    loadModelNames = theModelsView.map(modelName => {
-        return modelName.name;
-    })
+
+    loadModelNames = theModelsView.map((modelName) => {
+      return modelName.name;
+    });
     loadModelNames.unshift("Fal - Flux");
     console.log("loadModelNames:", loadModelNames);
     //manually add names here
-   
-
-};
+  }
+ 
 
   async function callOllama() {
-    const ollama = new Ollama({ host: "http://localhost:11434" });
+    
 
     userMsg = document.querySelector("#prompt")?.textContent || "";
 
@@ -195,6 +224,7 @@
     tokenCount = 0;
     tokenSpeed = 0;
     document.querySelector("#thumbnails").innerHTML = "";
+    // ollama.stop();
   }
   function stopStreaming() {
     if (isStreaming) {
@@ -204,11 +234,11 @@
       sendBtn.textContent = "Send";
     }
   }
-
 </script>
 
 <header id="title">
   <div id="weather"></div>
+  <!-- <button on:click={confirmDialog}>Show Dialog</button> -->
   <h1>Olly</h1>
   <!-- <button on:click={sendIt}>SendIt</button> -->
   <div class="input-vertical">
@@ -228,7 +258,6 @@
     <section id="" class="response" aria-live="polite" role="log">
       {@html responseMarked}
     </section>
-
   </div>
   <!-- <div id="settings">
     <button on:click={loadModels}>Load Models</button>
@@ -264,9 +293,7 @@
           aria-details="highlights"
           spellcheck="false"
           placeholder="How can I help?"
-        >
-
-        </div>
+        ></div>
       </div>
 
       <div id="buttonContainer">
