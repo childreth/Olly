@@ -84,7 +84,7 @@
 	background-position: 0.75rem 40%;
   }
 
-  #stopBtn {
+  #buttonWrap button#stopBtn {
     background: var(--buttonbg) url("$lib/images/stop.svg") no-repeat 0.75rem
       50%;
   }

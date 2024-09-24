@@ -1,7 +1,7 @@
 :root {
   --hue:260;
-  --surface: hsl(var(--hue), 80%, 96%);
-
+  --surface: hsl(var(--hue), 80%, 92%);
+--backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.24);
   --primary: hsl(var(--hue), 60%, 6%);
   --secondary: hsl(var(--hue), 48%, 25%);
   --tertiary: hsl(var(--hue), 37%, 78%);
@@ -64,7 +64,7 @@ pre {
   padding: 1rem;
   border: 1px solid var(--tertiary);
   border-radius: var(--borderRadiusSM);
-  background-color: #ffffff33;
+  background-color: var(--backgroundTransparent);
   padding-right: 2rem;
   position: relative;
 
@@ -679,10 +679,11 @@ input[type="file"] {
 
 
 [data-theme="dark"] {
-  --surface: hsl(var(--hue), 58%, 4%);
-  --primary: hsl(var(--hue), 28%, 84%);
+  --surface: hsl(var(--hue), 58%, 6%);
+  --primary: hsl(var(--hue), 28%, 80%);
   --secondary: hsl(var(--hue), 78%, 34%);
   --tertiary: hsl(var(--hue), 78%, 24%);
+  --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.04);
 
   
 
@@ -704,8 +705,8 @@ input[type="file"] {
   button:hover {
     box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 74%);
   }
-  #stopBtn {
-    background-image: url("$lib/images/stop_dark.svg")!important;
+  #buttonWrap button#stopBtn {
+    background-image: url("$lib/images/stop_dark.svg");
   }
 
 }

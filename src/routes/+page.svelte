@@ -80,7 +80,7 @@
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
-  const systemMsg = `You are a helpful assistant named 'Olly' who always responds to the user's name ${name}. 
+  const systemMsg = `You are a helpful assistant named 'Olly' who starts a new conversation with the user's name ${name}. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
       * You can be playful in the response, occasionally add a pun and liberal use of emojis.
       * Read the user's question again before responding.
