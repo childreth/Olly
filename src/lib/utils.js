@@ -4,22 +4,33 @@ export { Ollama }
 export async function getIcon(weather) {
   
   const ollama = new Ollama({ host: "http://localhost:11434" });
-
+  
   const response = await ollama.chat({
-    model: 'qwen2.5:1.5b',
+    model: 'gemma2:2b',
+    "options": {
+    //"seed": 101,
+    "temperature": 0
+  },
     messages: [
-      { role: 'system', content: `You job is to match a weather condition to an icon name in the list below.  You will be provided with a weather condition and will return an icon name from the list below that represents the weather condition provided.  Return only the icon names from the list. Do not includ or add any other text.  If you are unable to find a match, return the icon name for 'sad_face' Read through the weather condition and list twice before sending a response.
+      { role: 'system', content: `You job is to match a weather condition to an icon name in the list below.  
+      <instructions>
+        -You will be provided with a weather condition and time of day (day or night) and will return an icon name from the list below that represents the weather condition and time of day provided. 
+        - Return only the icon names from the list. Do not include or add any other text.  
+        - If you are unable to find a match, return the icon name for 'sad_face'.
+      </instructions>
+
       <icon list names>
       - clear_night
-      - partly_cloudy_night
+      - cloudy_night
       - clear_foggy
       - foggy
       - sunny
-      - partly_cloudy_sunny
+      - cloudy_sunny
       - rain
       - snow
       - thunderstorms
       - windy
+      - sad_face
       </icon list names>
 
         `},
@@ -27,16 +38,41 @@ export async function getIcon(weather) {
     ],
   })
   let iconName = (response.message.content).replace(/[\r\n\s]/g,'')+'.svg'
+  console.log('weather: ',weather, iconName)
   return iconName
   
 }
 
+export function toggleTheme() {
+  console.log('toggling theme')
+  const body = document.body;
+  const currentTheme = body.getAttribute('data-theme');
+  
+  if (currentTheme === 'dark') {
+    body.setAttribute('data-theme', 'light');
+    // localStorage.setItem('theme', 'light');
+  } else {
+    body.setAttribute('data-theme', 'dark');
+    // localStorage.setItem('theme', 'dark');
+  }
+}
+
+export function initTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    document.body.setAttribute('data-theme', savedTheme);
+  } else {
+    // Set default theme if no theme is saved
+    document.body.setAttribute('data-theme', 'light');
+  }
+}
 
   export function addCopyButtonToPre() {
-    console.log('adding copy button')
+    
     const preElements = document.querySelectorAll('pre');
     preElements.forEach(pre => {
-      if (!pre.querySelector('.copy-button')) {
+      if (pre.querySelector('.copy-button')) {
+        console.log('adding copy button')
         const copyButton = document.createElement('button');
         copyButton.textContent = 'Copy';
         copyButton.className = 'copy-button';
@@ -65,7 +101,8 @@ export async function getIcon(weather) {
   export async function weatherReport(lat,lon) {
     try {
 
-        const theWeather = document.querySelector("#weather");
+        const theWeather = document.querySelector("#weather .weather-report");
+        const theIcon = document.querySelector("#weather .weather-icon");
         theWeather.textContent = 'Loading...';
 
         const report = await fetch(
@@ -78,10 +115,11 @@ export async function getIcon(weather) {
         const theForecast = await forecastReturn.json();
         const forecastDetails = theForecast.properties.periods[0]
         
+        let iconWeather = `${forecastDetails.shortForecast}  ${forecastDetails.isDaytime ? 'Day' : 'Night'}`
 
-        const icon = await getIcon(forecastDetails.shortForecast)
+        const icon = await getIcon(iconWeather)
         
-        theWeather.style.backgroundImage = `url('/src/lib/images/weather/${icon}')`;
+        theIcon.style.mask = `url('/src/lib/images/weather/${icon}')`;
         theWeather.textContent = `${forecastDetails.name}: ${forecastDetails.temperature}°F - ${forecastDetails.shortForecast}`
     }
     catch (error) {

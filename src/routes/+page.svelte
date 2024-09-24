@@ -5,9 +5,24 @@
   import { marked } from "marked";
   import * as Utils from "$lib/utils.js";
   import Button from "$lib/components/button.svelte";
+  import Toggle from "$lib/components/toggle.svelte";
 
   import { open } from "@tauri-apps/api/dialog";
   import { confirm } from "@tauri-apps/api/dialog";
+
+  import { fetch, ResponseType } from "@tauri-apps/api/http";
+
+  //basic API call
+  const API_URL = "https://rickandmortyapi.com/api/episode";
+
+  async function rickAndMorty() {
+    const response = await fetch(API_URL, {
+      method: "GET",
+      timeout: 30,
+      responseType: ResponseType.JSON,
+    });
+    console.log("response", response);
+  }
   // Open a selection dialog for image files
   async function showDialog() {
     try {
@@ -35,6 +50,7 @@
       console.error("Error opening dialog:", error);
     }
   }
+  //basic confirm dialog
   async function confirmDialog() {
     try {
       confirm("Are you sure?", "Tauri");
@@ -67,7 +83,6 @@
   const systemMsg = `You are a helpful assistant named 'Olly' who always responds to the user's name ${name}. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
       * You can be playful in the response, occasionally add a pun and liberal use of emojis.
-      * When diagram charts are requested by the user create them with mermaid.js markdown.
       * Read the user's question again before responding.
       * When a user asks 'shall we play a game?' include "Global Thermonuclear War" as one of the games.`;
 
@@ -115,11 +130,8 @@
     console.log("loadModelNames:", loadModelNames);
     //manually add names here
   }
- 
 
   async function callOllama() {
-    
-
     userMsg = document.querySelector("#prompt")?.textContent || "";
 
     console.log(
@@ -195,8 +207,9 @@
         }
       } finally {
         isStreaming = false;
-        Utils.addCopyButtonToPre();
-        streamedGreeting += `<p></p>`;
+        // Utils.addCopyButtonToPre();
+        streamedGreeting += `
+         `;
       }
     }
 
@@ -237,10 +250,10 @@
 </script>
 
 <header id="title">
-  <div id="weather"></div>
+  <div id="weather"><span class="weather-icon"></span><span class="weather-report"></span></div>
   <!-- <button on:click={confirmDialog}>Show Dialog</button> -->
-  <h1>Olly</h1>
-  <!-- <button on:click={sendIt}>SendIt</button> -->
+  <h1 on:click={Utils.toggleTheme}>Olly</h1>
+  <!-- <button class="basic" on:click={Utils.toggleTheme}>Test it</button> -->
   <div class="input-vertical">
     <label for="pet-select" class="visualhide">Choose a model:</label>
 
@@ -270,6 +283,7 @@
   </div> -->
 
   <div id="userinput" class="halftone">
+    
     <div class="combotext">
       <div id="imgInput">
         <label for="file" class="custom-file-upload"

@@ -11,7 +11,6 @@
   },
   "tauri": {
     "allowlist": {
-      "all": false,
       "shell": {
         "all": false,
         "open": true
@@ -23,7 +22,20 @@
         "message": true,
         "open": true,
         "save": true
-      }
+      },
+      "app": {
+        "all": true, 
+        "show": true,
+        "hide": true
+      },
+      "os": {
+        "all": true
+      },
+      "http":{
+            "scope":["https://rickandmortyapi.com/*"],
+            "all": true,
+            "request": true
+        }
     },
     "windows": [
       {

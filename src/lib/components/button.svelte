@@ -43,8 +43,7 @@
       from var(--angle) at 50% 50%,
       var(--primary) 0% 25%,
       var(--surface) 60% 100%
-	  ),
-	  url('$lib/images/noise.svg');
+	  );
     animation: spin 1s linear infinite;
 	transition: background .3s ease-in-out;
   }
@@ -81,8 +80,17 @@
     transition: all cubic-bezier(0.67, -0.04, 0.31, 1.04) 0.1s;
   }
 
+  #buttonWrap:hover button{
+	background-position: 0.75rem 40%;
+  }
+
   #stopBtn {
     background: var(--buttonbg) url("$lib/images/stop.svg") no-repeat 0.75rem
       50%;
   }
+  #buttonWrap:hover button#stopBtn{
+	background-position: 0.75rem 50%;
+  }
+
+  
 </style>
