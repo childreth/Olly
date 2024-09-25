@@ -31,7 +31,7 @@
     left: 50%;
     border-radius: 12rem;
     transform: translate(-50%, -50%);
-    background-color: var(--primary);
+    background-color: var(--surface);
     z-index: -1;
     padding: 2px;
 	transition: background .3s ease-in-out;

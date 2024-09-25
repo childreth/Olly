@@ -10,6 +10,7 @@
 
   h1 {
     text-shadow: hsl(var(--hue), 78%, 44%) 0 0 16px;
+    
   }
   select {
 	background-image: url('$lib/images/keyboard_arrow_down_dark.svg');
@@ -22,7 +23,7 @@
   button {
     box-shadow: 0 0 12px 0 hsl(var(--hue), 78%, 44%);
     color: var(--surface) !important;
-    background-image: url('$lib/images/arrow-up.svg');
+    background-image: url('$lib/images/arrow-up_dark.svg')!important;
 	
   }
   button:hover {
@@ -31,6 +32,11 @@
   #buttonWrap button#stopBtn {
     background-image: url("$lib/images/stop_dark.svg")!important;
 	color: var(--primary)!important;
+  }
+  .textarea-container .fakeTextarea:empty::before {
+    content: "Hello...";
+    color: var(--primary);
+    opacity: 0.5;
   }
 
 }
