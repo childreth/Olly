@@ -1,0 +1,36 @@
+[data-theme="dark"] {
+  --surface: hsl(var(--hue), 68%, 6%);
+  --primary: hsl(var(--hue), 28%, 90%);
+  --secondary: hsl(var(--hue), 78%, 34%);
+  --tertiary: hsl(var(--hue), 78%, 24%);
+  --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.04);
+  --buttonbg: var(--primary);
+
+  
+
+  h1 {
+    text-shadow: hsl(var(--hue), 78%, 44%) 0 0 16px;
+  }
+  select {
+	background-image: url('$lib/images/keyboard_arrow_down_dark.svg');
+  }
+  .custom-file-upload{
+	background-image: url('$lib/images/attach_dark.svg');
+
+  }
+
+  button {
+    box-shadow: 0 0 12px 0 hsl(var(--hue), 78%, 44%);
+    color: var(--surface) !important;
+    background-image: url('$lib/images/arrow-up.svg');
+	
+  }
+  button:hover {
+    box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 74%);
+  }
+  #buttonWrap button#stopBtn {
+    background-image: url("$lib/images/stop_dark.svg")!important;
+	color: var(--primary)!important;
+  }
+
+}

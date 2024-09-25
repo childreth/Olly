@@ -329,4 +329,5 @@
 
 <style lang="">
   @import "./styles.css";
+  @import "./darkmode.css";
 </style>

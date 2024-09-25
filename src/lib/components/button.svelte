@@ -41,8 +41,8 @@
   #buttonWrap.stopBtn:after {
     background: conic-gradient(
       from var(--angle) at 50% 50%,
-      var(--primary) 0% 25%,
-      var(--surface) 60% 100%
+      var(--primary) 0% 30%,
+      var(--surface) 70% 100%
 	  );
     animation: spin 1s linear infinite;
 	transition: background .3s ease-in-out;
@@ -64,7 +64,7 @@
     font-family: var(--bodyFamily);
     padding: 0rem 1.25rem 0.1rem 2.5rem;
     min-height: 2.5rem;
-    min-width: 8ch;
+    min-width: 8.25ch;
     /* min-width: 10ch; */
     color: var(--surface);
     font-size: 1.25rem;
@@ -77,7 +77,7 @@
     justify-content: center;
     cursor: pointer;
     border: none;
-    transition: all cubic-bezier(0.67, -0.04, 0.31, 1.04) 0.1s;
+    transition: all cubic-bezier(0.67, -0.04, 0.31, 1.04) 0.4s;
   }
 
   #buttonWrap:hover button{
@@ -85,8 +85,9 @@
   }
 
   #buttonWrap button#stopBtn {
-    background: var(--buttonbg) url("$lib/images/stop.svg") no-repeat 0.75rem
+    background: var(--surface) url("$lib/images/stop.svg") no-repeat 0.75rem
       50%;
+	  color: var(--primary);
   }
   #buttonWrap:hover button#stopBtn{
 	background-position: 0.75rem 50%;

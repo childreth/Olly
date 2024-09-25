@@ -1,6 +1,6 @@
 :root {
   --hue:260;
-  --surface: hsl(var(--hue), 80%, 92%);
+  --surface: hsl(var(--hue), 80%, 96%);
 --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.24);
   --primary: hsl(var(--hue), 60%, 6%);
   --secondary: hsl(var(--hue), 48%, 25%);
@@ -361,7 +361,7 @@ button.basic {
 }
 .halftone {
   --dotSize: 1px;
-  --bgSize: 0.75rem;
+  --bgSize: 0.625rem;
   --bgPosition: calc(var(--bgSize) / 2);
 
   background-image: radial-gradient(
@@ -678,35 +678,4 @@ input[type="file"] {
 
 
 
-[data-theme="dark"] {
-  --surface: hsl(var(--hue), 58%, 6%);
-  --primary: hsl(var(--hue), 28%, 80%);
-  --secondary: hsl(var(--hue), 78%, 34%);
-  --tertiary: hsl(var(--hue), 78%, 24%);
-  --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.04);
 
-  
-
-  h1 {
-    text-shadow: hsl(var(--hue), 78%, 44%) 0 0 16px;
-  }
-  select {
-	background-image: url('$lib/images/keyboard_arrow_down_dark.svg');
-  }
-  .custom-file-upload{
-	background-image: url('$lib/images/attach_dark.svg');
-
-  }
-
-  button {
-    box-shadow: 0 0 12px 0 hsl(var(--hue), 78%, 44%);
-    color: var(--primary) !important;
-  }
-  button:hover {
-    box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 74%);
-  }
-  #buttonWrap button#stopBtn {
-    background-image: url("$lib/images/stop_dark.svg");
-  }
-
-}
