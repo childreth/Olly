@@ -1,5 +1,5 @@
 [data-theme="dark"] {
-  --surface: hsl(var(--hue), 68%, 6%);
+  --surface: hsl(var(--hue), 64%, 8%);
   --primary: hsl(var(--hue), 28%, 90%);
   --secondary: hsl(var(--hue), 78%, 34%);
   --tertiary: hsl(var(--hue), 78%, 24%);
@@ -9,7 +9,7 @@
   
 
   h1 {
-    text-shadow: hsl(var(--hue), 78%, 44%) 0 0 16px;
+    text-shadow: hsl(var(--hue), 78%, 4%) 0 0 4px;
     
   }
   select {
@@ -21,7 +21,7 @@
   }
 
   button {
-    box-shadow: 0 0 12px 0 hsl(var(--hue), 78%, 44%);
+    
     color: var(--surface) !important;
     background-image: url('$lib/images/arrow-up_dark.svg')!important;
 	

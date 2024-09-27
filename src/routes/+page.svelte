@@ -6,14 +6,18 @@
   import * as Utils from "$lib/utils.js";
   import Button from "$lib/components/button.svelte";
   import Toggle from "$lib/components/toggle.svelte";
+  import { appWindow } from '@tauri-apps/api/window'
 
   import { open } from "@tauri-apps/api/dialog";
   import { confirm } from "@tauri-apps/api/dialog";
 
   import { fetch, ResponseType } from "@tauri-apps/api/http";
 
+
+
   //basic API call
   const API_URL = "https://rickandmortyapi.com/api/episode";
+  
 
   async function rickAndMorty() {
     const response = await fetch(API_URL, {
@@ -115,6 +119,9 @@
       });
       reader.readAsDataURL(file);
     });
+    document.getElementById('titlebar-minimize').addEventListener('click', () => appWindow.minimize())
+document.getElementById('titlebar-maximize').addEventListener('click', () => appWindow.toggleMaximize())
+document.getElementById('titlebar-close').addEventListener('click', () => appWindow.close())
   });
 
   async function loadModels() {
@@ -249,8 +256,13 @@
   }
 </script>
 
+
 <header id="title">
-  <div id="weather"><span class="weather-icon"></span><span class="weather-report"></span></div>
+  
+  <div id="weather"><span class="weather-icon"></span>
+    <div><span class="weather-report"></span></div>
+    <div class="weather-details"></div>
+  </div>
   <!-- <button on:click={confirmDialog}>Show Dialog</button> -->
   <h1 on:click={Utils.toggleTheme}>Olly</h1>
   <!-- <button class="basic" on:click={Utils.toggleTheme}>Test it</button> -->
@@ -326,6 +338,7 @@
     </p>
   </div>
 </main>
+
 
 <style lang="">
   @import "./styles.css";

@@ -102,6 +102,7 @@ export function initTheme() {
     try {
 
         const theWeather = document.querySelector("#weather .weather-report");
+        const theWeatherDetails = document.querySelector("#weather .weather-details");
         const theIcon = document.querySelector("#weather .weather-icon");
         theWeather.textContent = 'Loading...';
 
@@ -120,7 +121,8 @@ export function initTheme() {
         const icon = await getIcon(iconWeather)
         
         theIcon.style.mask = `url('/src/lib/images/weather/${icon}')`;
-        theWeather.textContent = `${forecastDetails.name}: ${forecastDetails.temperature}°F - ${forecastDetails.shortForecast}`
+        theWeather.textContent = `${forecastDetails.name}: ${forecastDetails.temperature}°F`;
+        // theWeatherDetails.textContent = `${forecastDetails.shortForecast}`;
     }
     catch (error) {
       console.error('Error fetching weather data:', error);
