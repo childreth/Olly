@@ -6,18 +6,82 @@
   import * as Utils from "$lib/utils.js";
   import Button from "$lib/components/button.svelte";
   import Toggle from "$lib/components/toggle.svelte";
-  import { appWindow } from '@tauri-apps/api/window'
+  import { appWindow } from "@tauri-apps/api/window";
 
   import { open } from "@tauri-apps/api/dialog";
   import { confirm } from "@tauri-apps/api/dialog";
 
   import { fetch, ResponseType } from "@tauri-apps/api/http";
 
-
-
   //basic API call
   const API_URL = "https://rickandmortyapi.com/api/episode";
+  let selectedModel = "llama3.1:latest";
+  let activeModel = "";
+  let result = "";
+  let theImage = [];
+  let countConvo = 0;
+  let userMsg = "tell me a dad joke";
+  let lastChatResponse = "";
+  let streamedGreeting = "";
+  $: responseMarked = marked.parse(streamedGreeting);
+  let chatConvo = [];
+  let tokenSpeed = 0;
+  let tokenCount = 0;
+  const city = "Westford,MA";
+  let name = "Chris";
+
+  let loadModelNames = [];
+
+  let isStreaming = false;
+  let abortController = new AbortController();
+  const ollama = new Ollama({ host: "http://localhost:11434" });
+
+  const systemMsg = `You are a helpful assistant named 'Olly' who starts a new conversation with the user's name ${name}. 
+      * Always format the response in markdown using header, lists, paragraphs, text formating. 
+      * You can be playful in the response, occasionally add a pun and liberal use of emojis.
+      * Read the user's question again before responding.
+      * When a user asks 'shall we play a game?' include "Global Thermonuclear War" as one of the game in the list.`;
+
   
+  onMount(async () => {
+    const sendBtn = document.querySelector("#sendBtn");
+    const imagePreview = document.querySelector("#thumbnails");
+
+    Utils.getCoordinates(city);
+    loadModels();
+
+    const fileInput = document.querySelector("#file");
+
+    fileInput.addEventListener("change", (e) => {
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      reader.addEventListener("load", () => {
+        //uploadedImg = reader.result;
+        let uploadedImg = reader.result.split(",")[1];
+        theImage.push(uploadedImg);
+        // for thumbnail
+        let thumbnail = document.createElement("img");
+        thumbnail.src = reader.result;
+        imagePreview?.appendChild(thumbnail);
+        //document.querySelector("#thumbs").src = reader.result;
+
+        //let theImageURL = URL.createObjectURL(fileInput.files[0]);
+        //theImage = fileInput.files[0];1
+        console.log("reader: ", theImage);
+      });
+      reader.readAsDataURL(file);
+    });
+    document
+      .getElementById("titlebar-minimize")
+      .addEventListener("click", () => appWindow.minimize());
+    document
+      .getElementById("titlebar-maximize")
+      .addEventListener("click", () => appWindow.toggleMaximize());
+    document
+      .getElementById("titlebar-close")
+      .addEventListener("click", () => appWindow.close());
+  });
 
   async function rickAndMorty() {
     const response = await fetch(API_URL, {
@@ -63,66 +127,17 @@
     }
   }
 
-  let selectedModel = "llama3.1:latest";
-  let activeModel = "";
-  let result = "";
-  let theImage = [];
-  let countConvo = 0;
-  let userMsg = "tell me a dad joke";
-  let chatResponse = "";
-  let streamedGreeting = "";
-  $: responseMarked = marked.parse(streamedGreeting);
-  let chatConvo = [];
-  let tokenSpeed = 0;
-  let tokenCount = 0;
-  const city = "Westford,MA";
-  let name = "Chris";
+  function addUserMsg() {
+    let userMsg = document.querySelector("#prompt")?.textContent || "";
+    //add user message to the top of the chat
+    let responseSection = document.querySelector(".response");
+    let userMsgSection = document.createElement("p");
+    userMsgSection.classList.add("userMsg");
+    userMsgSection.textContent = userMsg;
+    responseSection.appendChild(userMsgSection);
 
-  let loadModelNames = [];
+  }
 
-  let isStreaming = false;
-  let abortController = new AbortController();
-  const ollama = new Ollama({ host: "http://localhost:11434" });
-
-  const systemMsg = `You are a helpful assistant named 'Olly' who starts a new conversation with the user's name ${name}. 
-      * Always format the response in markdown using header, lists, paragraphs, text formating. 
-      * You can be playful in the response, occasionally add a pun and liberal use of emojis.
-      * Read the user's question again before responding.
-      * When a user asks 'shall we play a game?' include "Global Thermonuclear War" as one of the games.`;
-
-  onMount(async () => {
-    const sendBtn = document.querySelector("#sendBtn");
-    const imagePreview = document.querySelector("#thumbnails");
-
-    Utils.getCoordinates(city);
-    loadModels();
-
-    const fileInput = document.querySelector("#file");
-
-    fileInput.addEventListener("change", (e) => {
-      const file = fileInput.files[0];
-      const reader = new FileReader();
-
-      reader.addEventListener("load", () => {
-        //uploadedImg = reader.result;
-        let uploadedImg = reader.result.split(",")[1];
-        theImage.push(uploadedImg);
-        // for thumbnail
-        let thumbnail = document.createElement("img");
-        thumbnail.src = reader.result;
-        imagePreview?.appendChild(thumbnail);
-        //document.querySelector("#thumbs").src = reader.result;
-
-        //let theImageURL = URL.createObjectURL(fileInput.files[0]);
-        //theImage = fileInput.files[0];1
-        console.log("reader: ", theImage);
-      });
-      reader.readAsDataURL(file);
-    });
-    document.getElementById('titlebar-minimize').addEventListener('click', () => appWindow.minimize())
-document.getElementById('titlebar-maximize').addEventListener('click', () => appWindow.toggleMaximize())
-document.getElementById('titlebar-close').addEventListener('click', () => appWindow.close())
-  });
 
   async function loadModels() {
     const ollama = new Ollama({ host: "http://localhost:11434" });
@@ -140,14 +155,11 @@ document.getElementById('titlebar-close').addEventListener('click', () => appWin
 
   async function callOllama() {
     userMsg = document.querySelector("#prompt")?.textContent || "";
+    //add user message to the top of the chat
+    //addUserMsg()
 
     console.log(
-      "chatConvo:",
-      chatConvo,
-      countConvo,
-      userMsg,
-      systemMsg,
-      selectedModel
+      "chatConvo:",chatConvo
     );
 
     //add user message to the thread
@@ -162,7 +174,7 @@ document.getElementById('titlebar-close').addEventListener('click', () => appWin
     } else {
       chatConvo[countConvo++] = {
         role: "assistant",
-        content: streamedGreeting,
+        content: lastChatResponse,
         images: theImage,
       };
       chatConvo[countConvo++] = {
@@ -179,6 +191,7 @@ document.getElementById('titlebar-close').addEventListener('click', () => appWin
     } else {
       isStreaming = true;
       abortController = new AbortController();
+      lastChatResponse = "";
 
       try {
         const response = await ollama.chat({
@@ -191,12 +204,15 @@ document.getElementById('titlebar-close').addEventListener('click', () => appWin
           signal: abortController.signal,
         });
 
+        
+
         for await (const part of response) {
           if (abortController.signal.aborted) {
             ollama.abort();
             break;
           }
           streamedGreeting += part.message.content;
+          lastChatResponse += part.message.content;
           //looks for end of stream
           if (part.eval_count) {
             tokenCount = Number(part.eval_count);
@@ -214,9 +230,7 @@ document.getElementById('titlebar-close').addEventListener('click', () => appWin
         }
       } finally {
         isStreaming = false;
-        // Utils.addCopyButtonToPre();
-        streamedGreeting += `
-         `;
+        Utils.addCopyButtonToPre();
       }
     }
 
@@ -256,10 +270,9 @@ document.getElementById('titlebar-close').addEventListener('click', () => appWin
   }
 </script>
 
-
 <header id="title">
-  
-  <div id="weather"><span class="weather-icon"></span>
+  <div id="weather">
+    <span class="weather-icon"></span>
     <div><span class="weather-report"></span></div>
     <div class="weather-details"></div>
   </div>
@@ -295,7 +308,6 @@ document.getElementById('titlebar-close').addEventListener('click', () => appWin
   </div> -->
 
   <div id="userinput" class="halftone">
-    
     <div class="combotext">
       <div id="imgInput">
         <label for="file" class="custom-file-upload"
@@ -338,7 +350,6 @@ document.getElementById('titlebar-close').addEventListener('click', () => appWin
     </p>
   </div>
 </main>
-
 
 <style lang="">
   @import "./styles.css";

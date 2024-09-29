@@ -92,6 +92,7 @@
   }
   #buttonWrap:hover button#stopBtn{
 	background-position: 0.75rem 50%;
+  
   }
 
   

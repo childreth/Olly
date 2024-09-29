@@ -44,6 +44,6 @@
     height: 24px;
   }
   .titlebar-button:hover {
-    background: #5bbec3;
+  
   }
 </style>

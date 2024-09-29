@@ -32,6 +32,7 @@
   #buttonWrap button#stopBtn {
     background-image: url("$lib/images/stop_dark.svg")!important;
 	color: var(--primary)!important;
+  box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 54%);
   }
   .textarea-container .fakeTextarea:empty::before {
     content: "Hello...";
