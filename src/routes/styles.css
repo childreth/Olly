@@ -82,7 +82,7 @@ pre {
   }
 }
 
-button:focus-visible,
+
 select:focus-visible {
   /* transition: outline-offset 0.25s var(--easeOutLong);
   outline: 2px dotted var(--secondary);
@@ -90,8 +90,6 @@ select:focus-visible {
   outline: 2px solid var(--secondary);
 }
 
-.wrapper {
-}
 
 header {
   padding: 0 1.5rem;
@@ -128,6 +126,10 @@ header {
     }
     transition: letter-spacing ease-in-out 0.2s;
   }
+  h3 {
+
+  }
+
 
   #weather {
     display: flex;
@@ -216,28 +218,34 @@ section {
   scroll-behavior: smooth;
   background-color: var(--surface);
 
-  section.userMsg {
-    padding:0;
-   
-
-    p {
-      color: var(--primary);
-      border: 1px solid var(--tertiary);
-      border-radius: .5rem;
-      padding: 1rem;
-      display: inline-flex;
-      flex: 0 1 0px;
+    
+    h2.userMsg {
+      color: var(--secondary);
+      padding: 1.5rem 0;
+      display: flex;
+      flex: 1 0 auto;
+      font-size: 1.25rem;
+      font-weight: 400;
       margin-block: 2rem;
-      min-width: 12ch;
+      border-bottom: 1px solid var(--tertiary);
+      border-top: 1px solid var(--tertiary);
+      min-width: 4ch;
+     justify-content: flex-start;
+     position: relative;
       
     }
-    p:before {
-      content: "You: ";
+    /* h2:before {
+      content: "Chris ";
       color: var(--secondary);
-      font-weight: 600;
-    }
-  }
-  
+      font-weight: 400;
+      font-size: .875rem;
+      position: absolute;
+      background-color: var(--surface);
+      left: 0;
+      padding-inline-end: .25rem;
+      top:0rem;
+    } */
+
 }
 
 #settings {

@@ -13,16 +13,13 @@
   #buttonWrap {
     position: relative;
     z-index: 0;
-	
-	
-	
   }
   @property --angle {
     syntax: "<angle>";
     initial-value: 0deg;
     inherits: false;
   }
-  
+
   .button-border:after {
     content: "";
     position: absolute;
@@ -35,8 +32,7 @@
     background-color: var(--primary);
     z-index: -1;
     padding: 2px;
-	transition: background .3s ease-in-out;
-	
+    transition: background 0.3s ease-in-out;
   }
 
   #buttonWrap.stopBtn:after {
@@ -44,9 +40,9 @@
       from var(--angle) at 50% 50%,
       var(--primary) 0% 30%,
       var(--surface) 70% 100%
-	  );
+    );
     animation: spin 1s linear infinite;
-	transition: background .3s ease-in-out;
+    transition: background 0.3s ease-in-out;
   }
   @keyframes spin {
     from {
@@ -80,20 +76,23 @@
     border: none;
     transition: all cubic-bezier(0.67, -0.04, 0.31, 1.04) 0.4s;
   }
+  #buttonWrap:has(button:focus-visible) {
+    box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--primary);
+    border-radius: 12rem;
+  }
+  button:focus-visible {
+    outline: none;
+  }
 
-  #buttonWrap:hover button{
-	background-position: 0.75rem 40%;
+  #buttonWrap:hover button {
+    background-position: 0.75rem 40%;
   }
 
   #buttonWrap button#stopBtn {
-    background: var(--surface) url("$lib/images/stop.svg") no-repeat 0.75rem
-      50%;
-	  color: var(--primary);
+    background: var(--surface) url("$lib/images/stop.svg") no-repeat 0.75rem 50%;
+    color: var(--primary);
   }
-  #buttonWrap:hover button#stopBtn{
-	background-position: 0.75rem 50%;
-  
+  #buttonWrap:hover button#stopBtn {
+    background-position: 0.75rem 50%;
   }
-
-  
 </style>

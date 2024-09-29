@@ -36,9 +36,10 @@
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
-  const systemMsg = `You are a helpful assistant named 'Olly' who starts a new conversation with the user's name ${name}. 
+  const systemMsg = `You are a helpful assistant named 'Olly' who is a helpful assistant. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
-      * You can be playful in the response, occasionally add a pun and liberal use of emojis.
+      * You can be playful in the response, occasionally add a pun and exterme use of emojis.
+      * Start the response with "Hey, ${name}"
       * Read the user's question again before responding.
       * When a user asks 'shall we play a game?' include "Global Thermonuclear War" as one of the game in the list.`;
 
@@ -147,7 +148,7 @@
   async function callOllama() {
     userMsg = document.querySelector("#prompt")?.textContent || "";
     //add user message to the top of the chat
-    streamedGreeting += `<section class="userMsg" aria-live="polite" role="log"><p>${userMsg}</p></section>`;
+    streamedGreeting += `<h2 class="userMsg"> ${userMsg} </h2> \r`;
 
     console.log(
       "chatConvo:",chatConvo
