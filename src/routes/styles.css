@@ -218,6 +218,7 @@ section {
 
   section.userMsg {
     padding:0;
+   
 
     p {
       color: var(--primary);
@@ -226,8 +227,14 @@ section {
       padding: 1rem;
       display: inline-flex;
       flex: 0 1 0px;
-      margin-block-end: 2rem;
+      margin-block: 2rem;
       min-width: 12ch;
+      
+    }
+    p:before {
+      content: "You: ";
+      color: var(--secondary);
+      font-weight: 600;
     }
   }
   
