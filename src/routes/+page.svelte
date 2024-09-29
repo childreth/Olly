@@ -78,9 +78,9 @@
     document
       .getElementById("titlebar-maximize")
       .addEventListener("click", () => appWindow.toggleMaximize());
-    document
-      .getElementById("titlebar-close")
-      .addEventListener("click", () => appWindow.close());
+    // document
+    //   .getElementById("titlebar-close")
+    //   .addEventListener("click", () => appWindow.close());
   });
 
   async function rickAndMorty() {
@@ -127,16 +127,7 @@
     }
   }
 
-  function addUserMsg() {
-    let userMsg = document.querySelector("#prompt")?.textContent || "";
-    //add user message to the top of the chat
-    let responseSection = document.querySelector(".response");
-    let userMsgSection = document.createElement("p");
-    userMsgSection.classList.add("userMsg");
-    userMsgSection.textContent = userMsg;
-    responseSection.appendChild(userMsgSection);
 
-  }
 
 
   async function loadModels() {
@@ -156,7 +147,7 @@
   async function callOllama() {
     userMsg = document.querySelector("#prompt")?.textContent || "";
     //add user message to the top of the chat
-    //addUserMsg()
+    streamedGreeting += `<section class="userMsg" aria-live="polite" role="log"><p>${userMsg}</p></section>`;
 
     console.log(
       "chatConvo:",chatConvo
@@ -251,9 +242,11 @@
   }
 
   function changeModel() {
+    //reset the chat for new conversation+model
     console.log("model reset");
     countConvo = 0;
     chatConvo = [];
+    lastChatResponse = "";
     theImage = [];
     tokenCount = 0;
     tokenSpeed = 0;
