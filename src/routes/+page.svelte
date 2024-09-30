@@ -15,7 +15,7 @@
 
   //basic API call
   const API_URL = "https://rickandmortyapi.com/api/episode";
-  let selectedModel = "llama3.1:latest";
+  let selectedModel = "gemma2:latest";
   let activeModel = "";
   let result = "";
   let theImage = [];
@@ -36,10 +36,27 @@
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
-  const systemMsg = `You are a helpful assistant named 'Olly' who is a helpful assistant. 
+  const systemMsg = `You are a helpful assistant named 'Olly' Greet the user on the very first response.
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
       * You can be playful in the response, occasionally add a pun and exterme use of emojis.
-      * When a user asks 'shall we play a game?' include "Global Thermonuclear War" as one of the game in the list.`;
+      * When a user asks 'shall we play a game?' include  "Chess", "Tic Tac Toe", "Minesweeper", "Solitaire" as options for the list of 5 games.
+      * Rules for chess:
+        - When playing chess, always show a board visual of the chess board
+        - The visual for the chess board should be a 2D array of the board
+        - The visual for the chess board should be 8x8
+        - Reresent chess pieces with appropriate symbols
+        - Empty board spaces should be represented with a single period '.' 
+        - Always place the game visual in pre and code tags
+      * Rules for Tic Tac Toe:
+        - When playing Tic Tac Toe, always show a board visual of the Tic Tac Toe board
+        - The visual for the Tic Tac Toe board should be a 3x3 grid, label 1-9 for each space
+        - Represent Tic Tac Toe pieces with 'X' and 'O'
+        - Empty board spaces should be represented with a single period '.'
+        - Always place the game visual in pre and code tags
+      * Rules for Minesweeper:
+        - When playing Minesweeper, always show a board visual of the Minesweeper board
+        - The visual for the Minesweeper board should be a 2D array of the board
+       `;
 
   
   onMount(async () => {
@@ -80,6 +97,7 @@
     // document
     //   .getElementById("titlebar-close")
     //   .addEventListener("click", () => appWindow.close());
+    callOllama()
   });
 
   async function rickAndMorty() {
@@ -220,6 +238,7 @@
       } finally {
         isStreaming = false;
         Utils.addCopyButtonToPre();
+        streamedGreeting += ` <hr class='newChat'> `;
       }
     }
 

@@ -22,6 +22,7 @@
     border-radius: 0.5rem;
     overflow: hidden;
     border: none;
+    background-color: rgba(255, 255, 255, 0.5);
   }
 
   .titlebar {
@@ -35,6 +36,11 @@
     left: 0;
     z-index: 10;
     justify-content: flex-start;
+ 
+  }
+  .titlebar:hover{
+  
+    
   }
   .titlebar-button {
     display: inline-flex;
