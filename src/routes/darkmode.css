@@ -12,9 +12,13 @@
     text-shadow: hsl(var(--hue), 78%, 4%) 0 0 4px;
     
   }
-  h2 {
+  h2, h3, h4, h5, h6 {
     color: var(--primary)!important;
   }
+  a {
+    color: var(--primary)!important;
+  }
+
   
   select {
 	background-image: url('$lib/images/keyboard_arrow_down_dark.svg');
