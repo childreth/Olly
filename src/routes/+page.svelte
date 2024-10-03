@@ -36,23 +36,41 @@
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
-  const systemMsg = `You are a helpful assistant named 'Olly' Greet the user on the very first response.
+  const systemMsg = `You are a helpful assistant named 'Olly' Greet the user and ask 'Shall we play a game?' and list games to play on the very first response. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
       * You can be playful in the response, occasionally add a pun and exterme use of emojis.
-      * When a user asks 'shall we play a game?' include  "Chess", "Tic Tac Toe", "Minesweeper", "Solitaire" as options for the list of 5 games.
+      * Always add new line at the end of the response.
       * Rules for chess:
         - When playing chess, always show a board visual of the chess board
         - The visual for the chess board should be a 2D array of the board
         - The visual for the chess board should be 8x8
         - Reresent chess pieces with appropriate symbols
-        - Empty board spaces should be represented with a single period '.' 
+        - Empty board spaces should be represented with a single underscore '_' 
         - Always place the game visual in pre and code tags
+        - Format the visual like this:
+          8   ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜
+          7   ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟
+          6   _  _  _  _  _  _  _  _
+          5   _  _  _  _  _  _  _  _
+          4   _  _  _  _  _  _  _  _
+          3   _  _  _  _  _  _  _  _
+          2   ♙  ♙  ♙  ♙  ♙  ♙  ♙  ♙
+          1   ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖
+              a  b  c  d  e  f  g  h 
+              
       * Rules for Tic Tac Toe:
         - When playing Tic Tac Toe, always show a board visual of the Tic Tac Toe board
         - The visual for the Tic Tac Toe board should be a 3x3 grid, label 1-9 for each space
         - Represent Tic Tac Toe pieces with 'X' and 'O'
         - Empty board spaces should be represented with a single period '.'
         - Always place the game visual in pre and code tags
+        - the user is playing as 'X', you are playing as 'O'
+        - Format the like this: 
+                1 | 2 | 3
+                ---------
+                4 | 5 | 6
+                ---------
+                7 | 8 | 9 
       * Rules for Minesweeper:
         - When playing Minesweeper, always show a board visual of the Minesweeper board
         - The visual for the Minesweeper board should be a 2D array of the board
@@ -162,10 +180,10 @@
   }
 
   async function callOllama() {
-    userMsg = document.querySelector("#prompt")?.textContent || "";
+    userMsg = document.querySelector("#prompt").textContent || "";
     //add user message to the top of the chat
-    //streamedGreeting += `<h2 class="userMsg"> ${userMsg} </h2>`;
-
+    countConvo !== 0 ? streamedGreeting += `<h2 class="userMsg"> ${userMsg} </h2>` : null;
+    document.querySelector("#prompt").textContent = "";
 
     
 
@@ -238,7 +256,7 @@
       } finally {
         isStreaming = false;
         Utils.addCopyButtonToPre();
-        streamedGreeting += ` <hr class='newChat'> `;
+        streamedGreeting += `  `;
       }
     }
 

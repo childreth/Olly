@@ -3,7 +3,7 @@
   --primary: hsl(var(--hue), 28%, 90%);
   --secondary: hsl(var(--hue), 78%, 34%);
   --tertiary: hsl(var(--hue), 78%, 24%);
-  --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.04);
+  --backgroundTransparent: hsl(var(--hue), 90%, 6%, 0.8);
   --buttonbg: var(--primary);
 
   

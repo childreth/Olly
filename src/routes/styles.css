@@ -1,7 +1,7 @@
 :root {
-  --hue: 250;
-  --surface: hsl(var(--hue), 80%, 92%);
-  --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.24);
+  --hue: 260;
+  --surface: hsl(var(--hue), 80%, 94%);
+  --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.44);
   --primary: hsl(var(--hue), 60%, 6%);
   --secondary: hsl(var(--hue), 48%, 25%);
   --tertiary: hsl(var(--hue), 37%, 78%);
@@ -242,14 +242,14 @@ section {
     h2.userMsg {
       color: var(--secondary);
       padding: 1.5rem 0rem 1.25rem 0;
-      
+      line-height: 1.5rem;
       display: flex;
       flex: 1 0 auto;
       font-size: 1.25rem;
       font-weight: 400;
-      margin-block: 2rem;
-      border-bottom: 1px solid var(--tertiary);
-      border-top: 1px solid var(--tertiary);
+      margin-block-end: 2rem;
+      border-bottom: 2px dotted var(--tertiary);
+      border-top: 2px dotted var(--tertiary);
       min-width: 4ch;
      justify-content: flex-start;
      position: relative;
@@ -257,18 +257,18 @@ section {
       
     }
 }
-/* 
+
 #chat-container  h2:before {
   content: "You ";
-  color: var(--secondary);
+  color: var(--tertiary);
   font-weight: 400;
   font-size: .875rem;
   position: absolute;
   background-color: var(--surface);
   left: 0rem;
   padding-inline-end: .25rem;
-  top:.25rem;
-}  */
+  top:0rem;
+} 
 
 #settings {
   display: flex;
@@ -402,6 +402,7 @@ button.basic {
 .response {
   background-color: transparent;
   font-weight: 300;
+  
 
   .SD_img {
     width: 47%;
@@ -414,8 +415,13 @@ button.basic {
     box-shadow: 0 0 0 12px white;
   }
   > *:last-child:not(img) {
-    padding-block-end: 2rem;
+    margin-block-end: 2rem;
   }
+}
+.response:after {
+  content: " ";
+  display: block;
+  padding-bottom: 1rem;
 }
 
 #userinput {
