@@ -189,6 +189,7 @@
     userMsg = document.querySelector("#prompt").textContent || "";
     //add user message to the top of the chat
     streamedGreeting += `<h2 class="userMsg"> ${userMsg} </h2>`;
+    streamedGreeting += `<p><small><strong>${selectedModel}</strong></small></p>`
     document.querySelector("#prompt").textContent = "";
 
     

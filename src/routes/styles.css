@@ -37,6 +37,7 @@ svg {
 html {
   scroll-behavior: smooth;
   height: 100%;
+  font-size:16px;
 }
 
 body {
@@ -52,7 +53,7 @@ body {
   font-family: var(--bodyFamily);
   line-height: 1.5;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 1.25rem;
   color: var(--primary);
   background-color: transparent;
   font-synthesis: none;
@@ -86,15 +87,51 @@ h2, h3, h4, h5, h6 {
 a {
   color: var(--link);
 }
+p.subtitle {
+  font-size: 1.5rem;
+}
+
+p,s
+ol,
+ul {
+  margin:0;
+  line-height: 2rem;
+  margin-block-end: 1rem;
+  ul {
+    margin-block-start: 0.5rem;
+  }
+}
+ol, ul {
+  margin-block-start: -0.25rem;
+}
+ol li {
+  padding-left: 1rem;
+  
+}
+li {
+  margin-block-end: 0.25rem;
+}
+small {
+  font-size: 1rem;
+}
+hr {
+  border: 0;
+  border-bottom: 1px solid var(--tertiary);
+  border-image: none;
+}
 
 pre {
-  padding: 1rem;
+  padding: 1.5rem;
+  color: var(--secondary);
   border: 1px solid var(--tertiary);
   border-radius: var(--borderRadiusSM);
   background-color: var(--backgroundTransparent);
   padding-right: 2rem;
+  margin-block-end: 1.5rem;
+  box-sizing: border-box;
   position: relative;
-
+  white-space: pre-wrap;
+  font-size: 1rem;
   button.copy-button {
     font-size: 0.875rem;
     padding: 0.25rem 0.5rem;
@@ -294,7 +331,7 @@ section {
   text-align: center;
   position: absolute;
   left:-2.375rem;
-  bottom:-3.25rem;
+  bottom:-3.625rem;
 } 
 
 #settings {
@@ -345,36 +382,9 @@ a:hover,
   cursor: pointer;
 }
 
-pre {
-  white-space: pre-wrap;
-  /* Since CSS 2.1 */
-}
 
-p.subtitle {
-  font-size: 1.5rem;
-}
 
-p,
-ol,
-ul {
-  margin-top: 0.25rem;
-  font-size: 1.25rem;
-  line-height: 170%;
-}
 
-ol {
-  margin-top: 0rem;
-  margin-left: 2rem;
-}
-
-ol li {
-  padding-left: 0.5rem;
-}
-hr {
-  border: 0;
-  border-bottom: 1px solid var(--tertiary);
-  border-image: none;
-}
 
 .input {
   display: flex;
@@ -727,7 +737,7 @@ input[type="file"] {
   p {
     margin-top: 1rem;
     display: inline-flex;
-    line-height: 140%;
+    line-height: 130%;
     background: transparent;
     border: 1px solidvar(--secondary);
     color: rgb(255, 213, 255);
