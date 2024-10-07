@@ -19,8 +19,8 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    border-radius: 0.5rem;
-    overflow: hidden;
+    /* border-radius: 0.5rem; */
+    /* overflow: hidden; */
     border: none;
     background-color: rgba(255, 255, 255, 0.5);
   }

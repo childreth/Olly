@@ -15,7 +15,7 @@
 
   //basic API call
   const API_URL = "https://rickandmortyapi.com/api/episode";
-  let selectedModel = "gemma2:latest";
+  let selectedModel = "llama3.1:latest";
   let activeModel = "";
   let result = "";
   let theImage = [];
@@ -36,10 +36,16 @@
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
-  const systemMsg = `You are a helpful assistant named 'Olly' Greet the user and ask 'Shall we play a game?' and list games to play on the very first response. 
+  const systemMsg = `You are a helpful assistant named 'Olly' Greet the user. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
       * You can be playful in the response, occasionally add a pun and use of emojis.
-      * Always add new line at the end of the response.
+      * Always add new return line at the end of the response.
+      * The list of games to play are:
+        - Tic Tac Toe
+        - Chess
+        - Falken's Maze
+        - Blackjack
+        - Checkers
       * Rules for chess:
         - When playing chess, always show a board visual of the chess board
         - The visual for the chess board should be a 2D array of the board
@@ -115,7 +121,7 @@
     // document
     //   .getElementById("titlebar-close")
     //   .addEventListener("click", () => appWindow.close());
-    callOllama()
+    //callOllama()
   });
 
   async function rickAndMorty() {
@@ -182,7 +188,7 @@
   async function callOllama() {
     userMsg = document.querySelector("#prompt").textContent || "";
     //add user message to the top of the chat
-    countConvo !== 0 ? streamedGreeting += `<h2 class="userMsg"> ${userMsg} </h2>` : null;
+    streamedGreeting += `<h2 class="userMsg"> ${userMsg} </h2>`;
     document.querySelector("#prompt").textContent = "";
 
     
@@ -214,6 +220,7 @@
     } else if (selectedModel === "Canary Chrome") {
       canaryChrome();
     } else {
+      console.log("chatConvo:", chatConvo);
       isStreaming = true;
       abortController = new AbortController();
       lastChatResponse = "";
@@ -256,7 +263,7 @@
       } finally {
         isStreaming = false;
         Utils.addCopyButtonToPre();
-        streamedGreeting += `  `;
+        //streamedGreeting += ``;
       }
     }
 

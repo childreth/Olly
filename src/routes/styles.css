@@ -12,7 +12,7 @@
   --boxShadow: inset 0 0 12px 0 hsl(var(--hue), 32%, 32%);
   --shadow1: 1px 1px 0px 0px rgba(0, 0, 0, 1);
 
-  --link: var(--secondary);
+  --link: goldenrod;
   --linkDark: hsl(0, 14%, 10%);
   --buttonbg: var(--primary);
   --buttonShadow: var(--primary-dark);
@@ -44,8 +44,7 @@ body {
   padding: 0;
   display: flex;
   height: 100%;
-  
-
+  overflow: hidden;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -83,6 +82,9 @@ strong {
 }
 h2, h3, h4, h5, h6 {
   margin: 1.5rem 0 0.5rem 0;
+}
+a {
+  color: var(--link);
 }
 
 pre {
@@ -217,7 +219,7 @@ main {
   flex-grow: 1;
   flex-direction: column;
   align-items: center;
-  overflow: auto;
+  overflow-y: auto;
   position: relative;
 }
 
@@ -238,18 +240,20 @@ section {
   overflow-y: scroll;
   scroll-behavior: smooth;
   background-color: var(--surface);
+  position: relative;
     
     h2.userMsg {
-      color: var(--secondary);
-      padding: 1.5rem 0rem 1.25rem 0;
+      color: var(--primary);
+      padding: 1.75rem 0rem 2.75rem 0;
       line-height: 1.5rem;
       display: flex;
       flex: 1 0 auto;
       font-size: 1.25rem;
-      font-weight: 400;
-      margin-block-end: 2rem;
-      border-bottom: 2px dotted var(--tertiary);
-      border-top: 2px dotted var(--tertiary);
+      font-weight: 300;
+      margin-block-end: 2.5rem;
+      margin-block-start:3rem;
+      /* border-bottom: 2px dotted var(--tertiary);
+      border-top: 2px dotted var(--tertiary); */
       min-width: 4ch;
      justify-content: flex-start;
      position: relative;
@@ -258,16 +262,26 @@ section {
     }
 }
 
-#chat-container  h2:before {
-  content: "You ";
+#chat-container  h2.userMsg:before {
+  content: "YOU";
+  color: var(--primary);
+  font-weight: 400;
+  font-size: .75rem;
+  position: absolute;
+  background-color: var(--surface);
+  left: 0rem;
+  top:0rem;
+} 
+#chat-container  h2.userMsg:after {
+  content: "OLLY ";
   color: var(--tertiary);
   font-weight: 400;
-  font-size: .875rem;
+  font-size: .75rem;
   position: absolute;
   background-color: var(--surface);
   left: 0rem;
   padding-inline-end: .25rem;
-  top:0rem;
+  bottom:-1.75rem;
 } 
 
 #settings {
@@ -414,15 +428,14 @@ button.basic {
     box-sizing: border-box;
     box-shadow: 0 0 0 12px white;
   }
-  > *:last-child:not(img) {
-    margin-block-end: 2rem;
-  }
+  
 }
-.response:after {
-  content: " ";
-  display: block;
-  padding-bottom: 1rem;
+.response:last-child::after {
+  margin-block-end: 2rem;
+  content: " end ";
+  color:transparent;
 }
+
 
 #userinput {
   display: flex;
