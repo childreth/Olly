@@ -283,7 +283,7 @@ section {
     h2.userMsg {
       color: var(--primary);
       padding: 1.75rem 0rem 2rem 0;
-      line-height: 1.5rem;
+      line-height: 1.75rem;
       display: flex;
       flex: 1 0 auto;
       font-size: 1.25rem;
@@ -314,7 +314,7 @@ section {
   font-size: .875rem;
   position: absolute;
   left: -2.375rem;
-  top:1.625rem;
+  top:1.75rem;
 } 
 #chat-container  h2.userMsg:after {
   content: "🦙";
@@ -439,8 +439,7 @@ button.basic {
 .response {
   background-color: transparent;
   font-weight: 300;
- 
-  
+  max-width:64ch;
 
   .SD_img {
     width: 47%;
@@ -495,7 +494,7 @@ button.basic {
 
 .combotext {
   display: flex;
-  max-width: 80ch;
+  max-width: 64ch;
   flex-direction: row;
   border: 1px solid var(--secondary);
   border-radius: 4rem;

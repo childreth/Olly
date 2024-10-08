@@ -1,6 +1,7 @@
 [data-theme="dark"] {
   --surface: hsl(var(--hue), 64%, 8%);
   --primary: hsl(var(--hue), 28%, 90%);
+  --code: hsl(var(--hue), 28%, 70%);
   --secondary: hsl(var(--hue), 78%, 34%);
   --tertiary: hsl(var(--hue), 78%, 24%);
   --backgroundTransparent: hsl(var(--hue), 90%, 6%, 0.8);
@@ -17,6 +18,9 @@
   }
   a {
     color: gold;
+  }
+  pre code{
+    color: var(--code);
   }
 
   
