@@ -398,10 +398,10 @@
     </div>
     <!-- <audio id="speech" controls style="position: fixed; bottom: 0; left: 0; width: 100%;" /> -->
     <p class="modelInfo">
-      Model <strong>{selectedModel}</strong>:
+      <a class='basic' on:click={Utils.openSettings}>Manage models</a> &nbsp; | &nbsp; <strong>{selectedModel}</strong>:
       <span class="highlightText">{tokenSpeed} tokens/sec</span>
       &mdash; <span class="highlightText">{tokenCount} total tokens</span> 
-      <a class='basic' on:click={Utils.openSettings}>Manage models</a>
+      
     </p>
   </div>
 </main>
