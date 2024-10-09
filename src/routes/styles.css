@@ -1,5 +1,5 @@
 :root {
-  --hue: 260;
+  --hue: 254;
   --surface: hsl(var(--hue), 80%, 94%);
   --surface24: hsl(var(--hue), 80%, 94%,.24);
   --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.44);
@@ -84,6 +84,7 @@ strong {
 }
 h2, h3, h4, h5, h6 {
   margin: 1.5rem 0 0.5rem 0;
+  font-weight: 600;
 }
 
 a,
@@ -146,7 +147,8 @@ pre {
   font-size: 1rem;
   button.copy-button {
     font-size: 0.875rem;
-    padding: 0.25rem 0.5rem;
+    min-height: 2rem;
+    padding: 0rem 0.5rem 0.25rem 0.5rem;
     background: transparent;
     border-radius: 0.5rem;
     position: absolute;
@@ -310,6 +312,10 @@ section {
    
       
     }
+    h2.userMsg:first-child {
+      margin-block-start: 0;
+      
+    }
 }
 
 #chat-container  h2.userMsg:before {
@@ -351,7 +357,7 @@ section {
   position: absolute;
   top: 0;
   right: 0;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
   background-color: var(--surface24);
   height: 100%;
   width: 100%;

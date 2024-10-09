@@ -46,13 +46,13 @@
 	color: var(--primary)!important;
   box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 54%);
   }
-  button.basic {
-    color: var(--primary) !important;
+  button.basic,button.copy-button {
+    color: var(--primary)!important;
   }
-  button.basic:hover {
+  button.basic:hover,button.copy-button:hover {
     
-    background-image: none;
-    background-color: var(--primary);
+    background-image: none!important;
+    background-color: var(--secondary);
     box-shadow: none;
   }
   .textarea-container .fakeTextarea:empty::before {

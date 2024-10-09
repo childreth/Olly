@@ -68,10 +68,10 @@ export function initTheme() {
 }
 
   export function addCopyButtonToPre() {
-    
+    console.log('addCopyButtonToPre');
     const preElements = document.querySelectorAll('pre');
     preElements.forEach(pre => {
-      if (pre.querySelector('.copy-button')) {
+      if (!pre.querySelector('.copy-button')) {
         console.log('adding copy button')
         const copyButton = document.createElement('button');
         copyButton.textContent = 'Copy';
