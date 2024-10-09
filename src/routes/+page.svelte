@@ -185,6 +185,15 @@
     //manually add names here
   }
 
+  async function deleteModel(model) {
+    const ollama = new Ollama({ host: "http://localhost:11434" });
+    let processing = ollama.ps()
+    let models = await ollama.delete({ model: model });
+    console.log("deleteModel:", processing);
+    loadModels()
+    
+  }
+
   async function callOllama() {
     userMsg = document.querySelector("#prompt").textContent || "";
     //add user message to the top of the chat
@@ -306,6 +315,21 @@
   }
 </script>
 
+<div id="settings">
+  <div class="settings-content">
+    <header>
+      <h2>Manage models</h2><button class="icon" on:click={Utils.closeSettings}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-437.85 277.08-234.92q-8.31 8.3-20.89 8.5-12.57.19-21.27-8.5-8.69-8.7-8.69-21.08 0-12.38 8.69-21.08L437.85-480 234.92-682.92q-8.3-8.31-8.5-20.89-.19-12.57 8.5-21.27 8.7-8.69 21.08-8.69 12.38 0 21.08 8.69L480-522.15l202.92-202.93q8.31-8.3 20.89-8.5 12.57-.19 21.27 8.5 8.69 8.7 8.69 21.08 0 12.38-8.69 21.08L522.15-480l202.93 202.92q8.3 8.31 8.5 20.89.19 12.57-8.5 21.27-8.7 8.69-21.08 8.69-12.38 0-21.08-8.69L480-437.85Z"/></svg></button>
+    </header>
+   
+    <ul>
+      {#each loadModelNames as model}
+        <li>{model} <button class='basic delete' on:click={deleteModel(`${model}`)}>Delete</button></li>
+      {/each}
+    </ul>
+  </div>
+  
+</div>
+
 <header id="title">
   <div id="weather">
     <span class="weather-icon"></span>
@@ -328,20 +352,14 @@
   </div>
 </header>
 <main>
+ 
   <div id="chat-container">
     <section id="" class="response" aria-live="polite" role="log">
       {@html responseMarked}
     </section>
+    
   </div>
-  <!-- <div id="settings">
-    <button on:click={loadModels}>Load Models</button>
-    <h2>Available Models</h2>
-    <ul>
-      {#each loadModelNames as model}
-        <li>{model}</li>
-      {/each}
-    </ul>
-  </div> -->
+ 
 
   <div id="userinput" class="halftone">
     <div class="combotext">
@@ -382,7 +400,8 @@
     <p class="modelInfo">
       Model <strong>{selectedModel}</strong>:
       <span class="highlightText">{tokenSpeed} tokens/sec</span>
-      &mdash; <span class="highlightText">{tokenCount} total tokens</span>
+      &mdash; <span class="highlightText">{tokenCount} total tokens</span> 
+      <a class='basic' on:click={Utils.openSettings}>Manage models</a>
     </p>
   </div>
 </main>

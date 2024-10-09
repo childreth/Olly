@@ -139,4 +139,26 @@ export function initTheme() {
   weatherReport(lat,lon)
  //console.log('WeatherCity: ',lat,lon)
 }
+export function closeSettings() {
+  const settingsDiv = document.querySelector('#settings');
+  if (settingsDiv) {
+    settingsDiv.classList.add('fadeOut');
+    settingsDiv.addEventListener('animationend', () => {
+      if (settingsDiv.classList.contains('fadeOut')) {
+        settingsDiv.style.display = 'none';
+        settingsDiv.classList.remove('fadeOut');
+      }
+    });
+  }
+}
+export function openSettings() {
+  const settingsDiv = document.querySelector('#settings');
+  if (settingsDiv) {
+    settingsDiv.style.display = 'flex';
+    settingsDiv.classList.add('fadeIn');
+  }
+}
+
+
+
 

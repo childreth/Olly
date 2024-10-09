@@ -17,7 +17,7 @@
     color: var(--primary)!important;
   }
   a {
-    color: gold;
+    color: var(--primary);
   }
   pre code{
     color: var(--code);
@@ -45,6 +45,15 @@
     background-image: url("$lib/images/stop_dark.svg")!important;
 	color: var(--primary)!important;
   box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 54%);
+  }
+  button.basic {
+    color: var(--primary) !important;
+  }
+  button.basic:hover {
+    
+    background-image: none;
+    background-color: var(--primary);
+    box-shadow: none;
   }
   .textarea-container .fakeTextarea:empty::before {
     content: "Hello...";

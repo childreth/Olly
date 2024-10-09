@@ -1,6 +1,7 @@
 :root {
   --hue: 260;
   --surface: hsl(var(--hue), 80%, 94%);
+  --surface24: hsl(var(--hue), 80%, 94%,.24);
   --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.44);
   --primary: hsl(var(--hue), 60%, 6%);
   --secondary: hsl(var(--hue), 48%, 25%);
@@ -12,7 +13,7 @@
   --boxShadow: inset 0 0 12px 0 hsl(var(--hue), 32%, 32%);
   --shadow1: 1px 1px 0px 0px rgba(0, 0, 0, 1);
 
-  --link: goldenrod;
+  --link: var(--primary);
   --linkDark: hsl(0, 14%, 10%);
   --buttonbg: var(--primary);
   --buttonShadow: var(--primary-dark);
@@ -335,14 +336,61 @@ section {
 } 
 
 #settings {
-  display: flex;
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  backdrop-filter: blur(16px);
+  background-color: var(--surface24);
+  height: 100%;
+  width: 100%;
+  z-index: 100;
+  box-sizing: border-box;
   flex-direction: column;
   align-items: center;
-  margin: 0;
-  width: 30%;
-  padding: 0rem 0 2rem 0;
-  overflow-y: auto;
-  border-left: 1px solid var(--secondary);
+  justify-content: center;
+  overflow: auto;
+
+  .settings-content {
+    width: 80%;
+    height: 80%;
+    box-sizing: border-box;
+    padding:0;
+    background-color: var(--surface);
+    border: 1px solid var(--secondary);
+    border-radius: .5rem;
+    overflow: auto;
+  }
+  .header {
+    position: sticky;
+    top: 0;
+    background-color: var(--surface);
+  }
+  h2 {
+    font-size: 1.25rem;
+    margin: 0;
+    padding: 1rem 0;
+    
+  }
+  ul {
+    margin: 0;
+    padding: 0 3rem;
+  }
+  ul li {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    list-style: none;
+    font-size: 1rem;
+    padding:.75rem 0;
+    margin: 0;
+    border-bottom: 1px solid var(--tertiary);
+  }
+  ul li:last-child {
+    border-bottom: none;
+    padding-bottom: 2rem;
+  }
 }
 
 
@@ -377,10 +425,13 @@ a,
 
 a:hover,
 .highlighted:hover {
-  color: var(--linkDark);
+  color: var(--link);
   text-decoration: 0.1em solid underline;
   cursor: pointer;
 }
+
+
+
 
 
 
@@ -431,9 +482,24 @@ button.basic {
   font-family: var(--bodyFamily);
   border: 1px solid var(--secondary);
   border-radius: 0.25rem;
-  padding: 0.5rem 1.25rem;
-  font-size: 1rem;
+  padding: 0.25rem 1rem;
+  font-size: .875rem;
+  color: var(--primary);
   background-color: transparent;
+}
+button.basic:hover {
+  background-color: var(--tertiary);
+  background-image: none;
+  color: var(--primary);
+  box-shadow: none;
+}
+button.icon {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .response {
@@ -709,78 +775,6 @@ input[type="file"] {
   }
 }
 
-.grade {
-  /* border: 1px solid #1d0087; */
-  padding: 0.25rem 1rem;
-  display: inline-flex;
-  border-radius: 5rem;
-  color: var(--secondary);
-  border: 1px solid var(--tertiary);
-
-  line-height: 2rem;
-}
-
-.suggested {
-  border-radius: 2rem 4rem 2rem 0;
-  /* box-shadow: inset 0 0 8px 0 #180070; */
-  padding: 5rem 2.5rem 1.75rem 3.25rem;
-  border: none;
-  /* background: var(--tertiary); */
-  margin: 2rem 0;
-  overflow: visible;
-  background: var(--tertiary) url("$lib/images/sparkles_24.svg") no-repeat 20px
-    40px;
-  background-size: 3%;
-  position: relative;
-
-  p {
-    margin-top: 1rem;
-    display: inline-flex;
-    line-height: 130%;
-    background: transparent;
-    border: 1px solidvar(--secondary);
-    color: rgb(255, 213, 255);
-    margin-bottom: 0.5rem;
-  }
-
-  li {
-    list-style-type: none;
-    list-style: none;
-  }
-
-  .actions {
-    display: flex;
-    gap: 0.5rem;
-    padding-top: 1rem;
-
-    button {
-      background-image: none;
-      background-color: transparent;
-      padding: 0 1rem;
-      font-size: 1rem;
-      width: auto;
-      border: 1px solid var(--secondary);
-      box-shadow: none;
-    }
-
-    button:hover {
-      background-color: var(--surface);
-    }
-
-    p:active {
-      background: rgba(255, 255, 255, 0.1);
-      transform: scale(0.98);
-    }
-  }
-}
-
-.suggested:before {
-  content: "Suggested prompt:";
-  top: 36px;
-  font-weight: 700;
-  position: absolute;
-}
-
 .modelInfo {
   font-size: 0.875rem;
   margin: 0;
@@ -796,18 +790,31 @@ input[type="file"] {
 
 /* title bar styles */
 .fadeIn {
-  animation: fadeIn 0.5s ease-out forwards;
+  animation: fadeIn 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
   opacity: 0;
   
+}
+.fadeOut {
+  animation: fadeOut 0.35s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
   }
 }
