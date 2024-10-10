@@ -148,7 +148,7 @@ pre {
   button.copy-button {
     font-size: 0.875rem;
     min-height: 2rem;
-    padding: 0rem 0.5rem 0.25rem 0.5rem;
+    padding: 0rem 0.5rem 0.2rem 0.5rem;
     background: transparent;
     border-radius: 0.5rem;
     position: absolute;
@@ -486,6 +486,9 @@ select:hover {
   background-color: var(--surface);
   transition: border-width 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
 }
+button {
+  cursor: pointer;
+}
 
 button.basic {
   font-family: var(--bodyFamily);
@@ -495,6 +498,7 @@ button.basic {
   font-size: .875rem;
   color: var(--primary);
   background-color: transparent;
+  
 }
 button.basic:hover {
   background-color: var(--tertiary);
@@ -509,6 +513,7 @@ button.icon {
   margin: 0;
   width: 1.5rem;
   height: 1.5rem;
+  
 }
 
 .response {
