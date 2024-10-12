@@ -38,6 +38,9 @@
     background-image: url('$lib/images/arrow-up_dark.svg')!important;
 	
   }
+  button.icon {
+   color: var(--primary);
+  }
   button:hover {
     box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 74%);
   }

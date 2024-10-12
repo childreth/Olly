@@ -370,18 +370,27 @@ section {
 
   .settings-content {
     width: 80%;
+    max-width: 800px;
     height: 80%;
     box-sizing: border-box;
     padding:0;
     background-color: var(--surface);
     border: 1px solid var(--secondary);
     border-radius: .5rem;
-    overflow: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
-  .header {
-    position: sticky;
-    top: 0;
+  header {
+    display: flex;
     background-color: var(--surface);
+  }
+  section {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    margin: 0;
   }
   h2 {
     font-size: 1.25rem;
@@ -391,7 +400,7 @@ section {
   }
   ul {
     margin: 0;
-    padding: 0 3rem;
+    padding: 0;
   }
   ul li {
     display: flex;
@@ -777,17 +786,7 @@ input[type="file"] {
   }
 }
 
-@keyframes fadeInAnimation {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
 
-  100% {
-    opacity: 1;
-    transform: translateY(0px);
-  }
-}
 
 .modelInfo {
   font-size: 0.875rem;
@@ -802,33 +801,4 @@ input[type="file"] {
   display: none !important;
 }
 
-/* title bar styles */
-.fadeIn {
-  animation: fadeIn 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
-  opacity: 0;
-  
-}
-.fadeOut {
-  animation: fadeOut 0.35s cubic-bezier(0.19, 1, 0.22, 1) forwards;
-}
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-    transform: translateY(0px);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}

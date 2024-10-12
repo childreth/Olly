@@ -64,6 +64,29 @@
           1   ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖
               a  b  c  d  e  f  g  h 
 
+        - example white move c2 to c3
+           8   ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜
+          7   ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟
+          6   _  _  _  _  _  _  _  _
+          5   _  _  _  _  _  _  _  _
+          4   _  _  _  _  _  _  _  _
+          3   _  _  ♙  _  _  _  _  _
+          2   ♙  ♙  _  ♙  ♙  ♙  ♙  ♙
+          1   ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖
+              a  b  c  d  e  f  g  h 
+
+        - example black move f7 to f6
+           8   ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜
+          7   ♟  ♟  ♟  ♟  ♟  _  ♟  ♟
+          6   _  _  _  _  _  ♟  _  _
+          5   _  _  _  _  _  _  _  _
+          4   _  _  _  _  _  _  _  _
+          3   _  _  ♙  _  _  _  _  _
+          2   ♙  ♙  _  ♙  ♙  ♙  ♙  ♙
+          1   ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖
+              a  b  c  d  e  f  g  h 
+         
+
       * Rules for Tic Tac Toe:
         - When playing Tic Tac Toe, always show a board visual of the Tic Tac Toe board
         - The visual for the Tic Tac Toe board should be a 3x3 grid, label 1-9 for each space
@@ -175,6 +198,7 @@
     const ollama = new Ollama({ host: "http://localhost:11434" });
 
     let models = await ollama.list();
+    console.log('models',models);
     let theModelsView = models.models;
 
     loadModelNames = theModelsView.map((modelName) => {
@@ -320,12 +344,13 @@
     <header>
       <h2>Manage models</h2><button class="icon" on:click={Utils.closeSettings}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-437.85 277.08-234.92q-8.31 8.3-20.89 8.5-12.57.19-21.27-8.5-8.69-8.7-8.69-21.08 0-12.38 8.69-21.08L437.85-480 234.92-682.92q-8.3-8.31-8.5-20.89-.19-12.57 8.5-21.27 8.7-8.69 21.08-8.69 12.38 0 21.08 8.69L480-522.15l202.92-202.93q8.31-8.3 20.89-8.5 12.57-.19 21.27 8.5 8.69 8.7 8.69 21.08 0 12.38-8.69 21.08L522.15-480l202.93 202.92q8.3 8.31 8.5 20.89.19 12.57-8.5 21.27-8.7 8.69-21.08 8.69-12.38 0-21.08-8.69L480-437.85Z"/></svg></button>
     </header>
-   
+    <section>
     <ul>
       {#each loadModelNames as model}
         <li>{model} <button class='basic delete' on:click={deleteModel(`${model}`)}>Delete</button></li>
       {/each}
     </ul>
+  </section>
   </div>
   
 </div>
@@ -409,4 +434,5 @@
 <style lang="">
   @import "./styles.css";
   @import "./darkmode.css";
+  @import "./animation.css";
 </style>
