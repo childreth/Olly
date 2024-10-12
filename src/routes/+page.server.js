@@ -15,7 +15,7 @@ export async function load() {
     })
     //manually add names here
 
-    modelNames.unshift("Fal - Flux","Canary Chrome");
+    modelNames.unshift("Fal - Flux");
    
 
     return {modelNames};

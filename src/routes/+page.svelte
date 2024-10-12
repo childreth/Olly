@@ -200,12 +200,18 @@
     let models = await ollama.list();
     console.log('models',models);
     let theModelsView = models.models;
-
+    console.log("theModelsView:", theModelsView);
     loadModelNames = theModelsView.map((modelName) => {
-      return modelName.name;
+      return [
+      modelName.name,  
+      Utils.formatDate(modelName.modified_at),
+      modelName.details.parameter_size,
+      modelName.details.quantization_level
+        
+      ];
     });
-    loadModelNames.unshift("Fal - Flux");
-    console.log("loadModelNames:", loadModelNames);
+    loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"]);
+    
     //manually add names here
   }
 
@@ -346,8 +352,14 @@
     </header>
     <section>
     <ul>
+      <li class='thead'><span>Name</span> <span class='date'>Last updated</span> <span>Parameter</span><span>Quantization</span><span class='actions'>&nbsp;</span></li>
       {#each loadModelNames as model}
-        <li>{model} <button class='basic delete' on:click={deleteModel(`${model}`)}>Delete</button></li>
+        <li>
+          <span>{model[0]}</span>
+          <span class='date'>{model[1]}</span>
+          <span>{model[2]}</span>
+          <span>{model[3]}</span>
+          <span><button class='basic delete' on:click={deleteModel(`${model[1]}`)}>Delete</button></span></li>
       {/each}
     </ul>
   </section>
@@ -369,8 +381,8 @@
 
     <select bind:value={selectedModel} on:change={changeModel}>
       {#each loadModelNames as question}
-        <option value={question}>
-          {question}
+        <option value={question[0]}>
+          {question[0]}
         </option>
       {/each}
     </select>

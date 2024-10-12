@@ -370,7 +370,7 @@ section {
 
   .settings-content {
     width: 80%;
-    max-width: 800px;
+    max-width: 1000px;
     height: 80%;
     box-sizing: border-box;
     padding:0;
@@ -381,6 +381,8 @@ section {
     display: flex;
     flex-direction: column;
   }
+  
+  
   header {
     display: flex;
     background-color: var(--surface);
@@ -399,23 +401,45 @@ section {
     
   }
   ul {
-    margin: 0;
+    margin: 0 0 2rem 0;
     padding: 0;
+    display: table;
+     
   }
   ul li {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    display: table-row;
     list-style: none;
     font-size: 1rem;
-    padding:.75rem 0;
-    margin: 0;
+    position: relative;
+  }
+  li.thead {
+    position: sticky; top: 0;
+    background-color: var(--surface);
+    z-index: 1;
+    font-size: .875rem;
+    font-weight: 500;
+
+  }
+  li:hover {
+    background-color: var(--transparent24);
+    position: relative;
+  }
+  li span {
+    display: table-cell;
+    padding: .625rem .25rem;
+    color: var(--primary);
+    width: calc(33.33% - 10px);
     border-bottom: 1px solid var(--tertiary);
   }
-  ul li:last-child {
+  li:last-child span{
     border-bottom: none;
-    padding-bottom: 2rem;
+  }
+  
+  li span:last-child {
+    text-align: right;
+    vertical-align: middle;
+
+    
   }
 }
 
@@ -518,6 +542,7 @@ button.basic:hover {
 button.icon {
   background-color: transparent;
   border: none;
+  color: var(--primary);
   padding: 0;
   margin: 0;
   width: 1.5rem;
