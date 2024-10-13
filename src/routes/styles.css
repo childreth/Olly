@@ -1,12 +1,13 @@
 :root {
-  --hue: 200;
-  --surface: hsl(var(--hue), 80%, 94%);
+  --hue: 190;
+  --surface: hsl(var(--hue), 70%, 94%);
   --surface24: hsl(var(--hue), 80%, 94%, 0.24);
   --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.44);
   --primary: hsl(var(--hue), 60%, 6%);
   --secondary: hsl(var(--hue), 48%, 25%);
   --tertiary: hsl(var(--hue), 37%, 78%);
   --transparent24: hsl(var(--hue), 100%, 96%, 0.54);
+  --dotcolor: hsl(var(--hue), 80%, 20%);
 
   --primary-dark: hsl(var(--hue), 78%, 2%);
 
@@ -89,7 +90,7 @@ h4,
 h5,
 h6 {
   margin: 1.5rem 0 0.5rem 0;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 a,
@@ -406,7 +407,7 @@ section {
     flex-grow: 1;
     margin: 0;
   }
-  h2 {
+  h2,h3 {
     margin: 0;
     padding: 1rem 0;
   }
@@ -594,12 +595,12 @@ button.icon:hover {
 
   background-image: radial-gradient(
       circle at center,
-      var(--secondary) var(--dotSize),
+      var(--dotcolor) var(--dotSize),
       transparent 0
     ),
     radial-gradient(
       circle at center,
-      var(--secondary) var(--dotSize),
+      var(--dotcolor) var(--dotSize),
       transparent 0
     );
   background-size: var(--bgSize) var(--bgSize);

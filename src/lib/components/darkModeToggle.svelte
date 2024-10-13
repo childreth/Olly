@@ -2,7 +2,7 @@
   export let checked = true;
   export let cta = true;
   export let id = '';
-  $: mode = checked ? 'Dark' : 'Light';
+  $: mode = checked ? 'on' : 'off';
 
   function handleChange() {
     checked = !checked;
@@ -30,7 +30,7 @@
     />
     <span class="toggle-switch"></span>
     {#if cta}
-      <span class="toggle-label">{mode} mode</span>
+      <span class="toggle-label">Dark mode ({mode})</span>
     {/if}
   </label>
 </div>
@@ -44,7 +44,7 @@
     display: flex;
     align-items: center;
     cursor: pointer;
-    font-size: 0.875rem;
+    font-size:1rem;
   }
 
   input[type="checkbox"] {

@@ -6,6 +6,7 @@
   import * as Utils from "$lib/utils.js";
   import SendButton from "$lib/components/sendButton.svelte";
   import Button from "$lib/components/button.svelte";
+  import ColorPicker from "$lib/components/colorPicker.svelte";
   import Toggle from "$lib/components/darkModeToggle.svelte";
   import { appWindow } from "@tauri-apps/api/window";
 
@@ -42,7 +43,6 @@
   const systemMsg = `You are a helpful assistant named 'Olly' Greet the user ${name}. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
       * You can be playful in the response, occasionally add a pun and use of emojis.
-      * Always create a new blank paragraph at the end of the response.
       * If the user asks to play a game, you can choose one of the following games:
         - Tic Tac Toe
         - Chess
@@ -356,13 +356,12 @@
 <div id="settings">
   <div class="settings-content">
     <header>
-      <h2>Settings</h2><button class="basic" on:click={Utils.closeSettings}>Close</button>
+      <h3>Settings</h3><button class="basic" on:click={Utils.closeSettings}>Close</button>
     </header>
 
     <section>
       <h4>General</h4>
-      <p><Toggle  id="darkModeToggle"  /></p><p> <input type="color" id="head" name="head" value="#e66465" />
-        <label for="head">Theme color</label></p>
+      <p style='display:flex;flex-direction:row;gap:2.5rem;'><Toggle  id="darkModeToggle"  /> <ColorPicker sett /></p>
       <h4>Manage models</h4>
     <ul>
       <li class='thead'><span>Name</span> <span class='date'>Last updated</span> <span>Parameter</span><span>Quantization</span><span class='actions'>&nbsp;</span></li>
@@ -385,7 +384,7 @@
   <div id="weather">
     <span class="weather-icon"></span>
     <div><span class="weather-report"></span></div>
-    <div style="margin:0 .5rem;color:var(--secondary)"> | </div><!-- <div class="weather-details"></div> -->
+    <div style="margin:0 1rem;color:var(--secondary)"> | </div><!-- <div class="weather-details"></div> -->
     <a class='basic' on:click={Utils.openSettings}>Settings</a>
   </div>
   <!-- <button on:click={confirmDialog}>Show Dialog</button> -->
