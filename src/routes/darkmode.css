@@ -76,8 +76,9 @@
 
   #settings {
     background-color: var(--surface24)!important;
+    backdrop-filter: blur(20px) brightness(0.5);
     ul li span {
-      color: var(--secondary);
+      color: var(--primary);
     }
     ul li:has(button:hover) span {
       color: var(--primary);

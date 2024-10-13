@@ -4,9 +4,9 @@
   import { onMount } from "svelte";
   import { marked } from "marked";
   import * as Utils from "$lib/utils.js";
-  import sendButton from "$lib/components/sendButton.svelte";
+  import SendButton from "$lib/components/sendButton.svelte";
   import Button from "$lib/components/button.svelte";
-  import Toggle from "$lib/components/toggle.svelte";
+  import Toggle from "$lib/components/darkModeToggle.svelte";
   import { appWindow } from "@tauri-apps/api/window";
 
   import { open } from "@tauri-apps/api/dialog";
@@ -32,16 +32,17 @@
   const city = "Westford,MA";
   let name = "Chris";
   let loadModelNames = [];
-
   let isStreaming = false;
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
+
+  let darkMode = false;
 
 
   const systemMsg = `You are a helpful assistant named 'Olly' Greet the user ${name}. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
       * You can be playful in the response, occasionally add a pun and use of emojis.
-      * Always add new return line at the end of the response.
+      * Always create a new blank paragraph at the end of the response.
       * If the user asks to play a game, you can choose one of the following games:
         - Tic Tac Toe
         - Chess
@@ -355,9 +356,14 @@
 <div id="settings">
   <div class="settings-content">
     <header>
-      <h2>Manage models</h2><button class="basic" on:click={Utils.closeSettings}>Close</button>
+      <h2>Settings</h2><button class="basic" on:click={Utils.closeSettings}>Close</button>
     </header>
+
     <section>
+      <h4>General</h4>
+      <p><Toggle  id="darkModeToggle"  /></p><p> <input type="color" id="head" name="head" value="#e66465" />
+        <label for="head">Theme color</label></p>
+      <h4>Manage models</h4>
     <ul>
       <li class='thead'><span>Name</span> <span class='date'>Last updated</span> <span>Parameter</span><span>Quantization</span><span class='actions'>&nbsp;</span></li>
       {#each loadModelNames as model}
@@ -379,10 +385,11 @@
   <div id="weather">
     <span class="weather-icon"></span>
     <div><span class="weather-report"></span></div>
-    <div class="weather-details"></div>
+    <div style="margin:0 .5rem;color:var(--secondary)"> | </div><!-- <div class="weather-details"></div> -->
+    <a class='basic' on:click={Utils.openSettings}>Settings</a>
   </div>
   <!-- <button on:click={confirmDialog}>Show Dialog</button> -->
-  <h1 on:click={Utils.toggleTheme}>Olly</h1>
+  <h1>Olly</h1>
   <!-- <button class="basic" on:click={Utils.toggleTheme}>Test it</button> -->
   <div class="input-vertical">
     <label for="pet-select" class="visualhide">Choose a model:</label>
@@ -434,7 +441,7 @@
       </div>
 
       <div id="buttonContainer">
-        <sendButton
+        <SendButton
           label={isStreaming ? "Stop" : "Start"}
           on:click={isStreaming ? stopStreaming : callOllama}
           elID={isStreaming ? "stopBtn" : "sendBtn"}
@@ -443,7 +450,7 @@
     </div>
     <!-- <audio id="speech" controls style="position: fixed; bottom: 0; left: 0; width: 100%;" /> -->
     <p class="modelInfo">
-      <a class='basic' on:click={Utils.openSettings}>Manage models</a> &nbsp; | &nbsp; <strong>{selectedModel}</strong>:
+       &nbsp; <strong>{selectedModel}</strong>:
       <span class="highlightText">{tokenSpeed} tokens/sec</span>
       &mdash; <span class="highlightText">{tokenCount} total tokens</span> 
       
