@@ -355,7 +355,7 @@
 <div id="settings">
   <div class="settings-content">
     <header>
-      <h2>Manage models</h2><button class="icon" on:click={Utils.closeSettings}>Close</button>
+      <h2>Manage models</h2><button class="basic" on:click={Utils.closeSettings}>Close</button>
     </header>
     <section>
     <ul>
@@ -367,8 +367,7 @@
           <span>{model[2]}</span>
           <span>{model[3]}</span>
           <span>
-            <Button type="secondary" icon="delete" label="Delete" on:click={deleteModel(`${model[0]}`)}/>
-            <button class='basic delete' on:click={deleteModel(`${model[0]}`)}>Delete</button></span></li>
+            <button class='basic' on:click={deleteModel(`${model[0]}`)}>Delete</button></span></li>
       {/each}
     </ul>
   </section>
