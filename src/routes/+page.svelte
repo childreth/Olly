@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import { marked } from "marked";
   import * as Utils from "$lib/utils.js";
+  import sendButton from "$lib/components/sendButton.svelte";
   import Button from "$lib/components/button.svelte";
   import Toggle from "$lib/components/toggle.svelte";
   import { appWindow } from "@tauri-apps/api/window";
@@ -18,7 +19,8 @@
   let selectedModel = "llama3.1:latest";
   let activeModel = "";
   let result = "";
-  let theImage = [];
+  let theImage= [];
+  let theThumbnail= [];
   let countConvo = 0;
   let userMsg = "tell me a dad joke";
   let lastChatResponse = "";
@@ -29,12 +31,12 @@
   let tokenCount = 0;
   const city = "Westford,MA";
   let name = "Chris";
-
   let loadModelNames = [];
 
   let isStreaming = false;
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
+
 
   const systemMsg = `You are a helpful assistant named 'Olly' Greet the user ${name}. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
@@ -120,8 +122,8 @@
       const reader = new FileReader();
 
       reader.addEventListener("load", () => {
-        //uploadedImg = reader.result;
         let uploadedImg = reader.result.split(",")[1];
+        theThumbnail = reader.result;
         theImage.push(uploadedImg);
         // for thumbnail
         let thumbnail = document.createElement("img");
@@ -227,9 +229,14 @@
   async function callOllama() {
     userMsg = document.querySelector("#prompt").textContent || "";
     //add user message to the top of the chat
-    streamedGreeting += `<h2 class="userMsg"> ${userMsg} </h2>`;
+    streamedGreeting += `<h2 class="userMsg"> <span>${userMsg}</span>` + 
+      `${theThumbnail != "" ? `<img src="${theThumbnail}" alt="User uploaded image">` : ""}
+      </h2>`;
+    
+    
     streamedGreeting += `<p><small><strong>${selectedModel}</strong></small></p>`
     document.querySelector("#prompt").textContent = "";
+    document.querySelector("#thumbnails").innerHTML = "";
 
     
 
@@ -348,7 +355,7 @@
 <div id="settings">
   <div class="settings-content">
     <header>
-      <h2>Manage models</h2><button class="icon" on:click={Utils.closeSettings}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-437.85 277.08-234.92q-8.31 8.3-20.89 8.5-12.57.19-21.27-8.5-8.69-8.7-8.69-21.08 0-12.38 8.69-21.08L437.85-480 234.92-682.92q-8.3-8.31-8.5-20.89-.19-12.57 8.5-21.27 8.7-8.69 21.08-8.69 12.38 0 21.08 8.69L480-522.15l202.92-202.93q8.31-8.3 20.89-8.5 12.57-.19 21.27 8.5 8.69 8.7 8.69 21.08 0 12.38-8.69 21.08L522.15-480l202.93 202.92q8.3 8.31 8.5 20.89.19 12.57-8.5 21.27-8.7 8.69-21.08 8.69-12.38 0-21.08-8.69L480-437.85Z"/></svg></button>
+      <h2>Manage models</h2><button class="icon" on:click={Utils.closeSettings}>Close</button>
     </header>
     <section>
     <ul>
@@ -359,7 +366,9 @@
           <span class='date'>{model[1]}</span>
           <span>{model[2]}</span>
           <span>{model[3]}</span>
-          <span><button class='basic delete' on:click={deleteModel(`${model[1]}`)}>Delete</button></span></li>
+          <span>
+            <Button type="secondary" icon="delete" label="Delete" on:click={deleteModel(`${model[0]}`)}/>
+            <button class='basic delete' on:click={deleteModel(`${model[0]}`)}>Delete</button></span></li>
       {/each}
     </ul>
   </section>
@@ -426,7 +435,7 @@
       </div>
 
       <div id="buttonContainer">
-        <Button
+        <sendButton
           label={isStreaming ? "Stop" : "Start"}
           on:click={isStreaming ? stopStreaming : callOllama}
           elID={isStreaming ? "stopBtn" : "sendBtn"}

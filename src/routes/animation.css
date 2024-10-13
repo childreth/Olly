@@ -1,11 +1,11 @@
 /* title bar styles */
 .fadeIn {
-    animation: fadeIn 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+    animation: fadeIn 0.75s cubic-bezier(.23,1.11,.25,1.01) forwards;
     opacity: 0;
     
   }
   .fadeOut {
-    animation: fadeOut 0.35s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+    animation: fadeOut 0.25s cubic-bezier(.25,0,.99,.08) forwards;
   }
   
   @keyframes fadeInAnimation {

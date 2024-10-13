@@ -1,5 +1,6 @@
 [data-theme="dark"] {
-  --surface: hsl(var(--hue), 64%, 8%);
+  --surface: hsl(var(--hue), 64%, 6%);
+  --surface24: hsl(var(--hue), 80%, 8%, 0.24);
   --primary: hsl(var(--hue), 28%, 90%);
   --code: hsl(var(--hue), 28%, 70%);
   --secondary: hsl(var(--hue), 78%, 34%);
@@ -38,8 +39,14 @@
     background-image: url('$lib/images/arrow-up_dark.svg')!important;
 	
   }
+  button.basic {
+    background-image: none!important;
+  }
   button.icon {
-   color: var(--primary);
+   color: var(--primary)!important;
+  }
+  button.icon:hover {
+    box-shadow: none;
   }
   button:hover {
     box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 74%);
@@ -62,6 +69,27 @@
     content: "Hello...";
     color: var(--primary);
     opacity: 0.5;
+  }
+  .custom-file-upload {
+    background: transparent url($lib/images/attach_dark.svg) no-repeat center center;
+  }
+
+  #settings {
+    background-color: var(--surface24)!important;
+    ul li span {
+      color: var(--secondary);
+    }
+    ul li:has(button:hover) span {
+      color: var(--primary);
+    }
+    ul li:hover {
+      background-color: var(--surface24);
+
+      button {
+        background-image: none!important;
+      }
+      
+    }
   }
 
 }

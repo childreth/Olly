@@ -1,7 +1,7 @@
 :root {
-  --hue: 254;
+  --hue: 194;
   --surface: hsl(var(--hue), 80%, 94%);
-  --surface24: hsl(var(--hue), 80%, 94%,.24);
+  --surface24: hsl(var(--hue), 80%, 94%, 0.24);
   --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.44);
   --primary: hsl(var(--hue), 60%, 6%);
   --secondary: hsl(var(--hue), 48%, 25%);
@@ -27,7 +27,8 @@
 
   --borderRadiusMD: 1rem;
   --borderRadiusSM: 0.75rem;
-  --borderRadiusXS: 0.625rem;
+  --borderRadiusXS: 0.5rem;
+  --borderRadiusXXS: 0.375rem;
 
   --easeOutLong: cubic-bezier(0.15, 0.16, 0.21, 0.99);
 }
@@ -38,7 +39,7 @@ svg {
 html {
   scroll-behavior: smooth;
   height: 100%;
-  font-size:16px;
+  font-size: 16px;
 }
 
 body {
@@ -82,7 +83,11 @@ h6 {
 strong {
   font-weight: 500;
 }
-h2, h3, h4, h5, h6 {
+h2,
+h3,
+h4,
+h5,
+h6 {
   margin: 1.5rem 0 0.5rem 0;
   font-weight: 600;
 }
@@ -104,22 +109,22 @@ p.subtitle {
   font-size: 1.5rem;
 }
 
-p,s
-ol,
+p,
+s ol,
 ul {
-  margin:0;
+  margin: 0;
   line-height: 2rem;
   margin-block-end: 1rem;
   ul {
     margin-block-start: 0.5rem;
   }
 }
-ol, ul {
+ol,
+ul {
   margin-block-start: -0.25rem;
 }
 ol li {
   padding-left: 1rem;
-  
 }
 li {
   margin-block-end: 0.25rem;
@@ -159,14 +164,12 @@ pre {
   }
 }
 
-
 select:focus-visible {
   /* transition: outline-offset 0.25s var(--easeOutLong);
   outline: 2px dotted var(--secondary);
   outline-offset: 3px; */
   outline: 2px solid var(--secondary);
 }
-
 
 header {
   padding: 0 1.5rem;
@@ -204,8 +207,6 @@ header {
       height: 40px;
     }
   }
- 
-
 
   #weather {
     display: flex;
@@ -215,7 +216,7 @@ header {
     flex-direction: row;
     justify-content: flex-start;
     background-size: 24px;
-    padding:.125rem 0 0 0;
+    padding: 0.125rem 0 0 0;
     line-height: 1.4rem;
     color: var(--primary);
     box-sizing: border-box;
@@ -293,32 +294,41 @@ section {
   background-color: var(--surface);
   position: relative;
   box-sizing: border-box;
-    
-    h2.userMsg {
-      color: var(--primary);
-      padding: 1.75rem 0rem 2rem 0;
-      line-height: 1.75rem;
+
+  h2.userMsg {
+    color: var(--primary);
+    padding: 1.75rem 0rem 2rem 0;
+    line-height: 1.75rem;
+    display: flex;
+    flex: 1 0 auto;
+    font-size: 1.25rem;
+    font-weight: 300;
+    margin-block-end: 1.75rem;
+    margin-block-start: 1.5rem;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 4ch;
+    justify-content: flex-start;
+    position: relative;
+    span {
+      order: 2;
       display: flex;
-      flex: 1 0 auto;
-      font-size: 1.25rem;
-      font-weight: 300;
-      margin-block-end: 1.75rem;
-      margin-block-start:1.5rem;
-      /* border-bottom: 2px dotted var(--tertiary);
-      border-top: 2px dotted var(--tertiary); */
-      min-width: 4ch;
-     justify-content: flex-start;
-     position: relative;
-   
-      
     }
-    h2.userMsg:first-child {
-      margin-block-start: 0;
-      
+    img {
+      display: flex;
+      max-width: 120px;
+      height: auto;
+      margin-inline-end: 1rem;
+      order: 1;
+      border-radius: .5rem;
     }
+  }
+  h2.userMsg:first-child {
+    margin-block-start: 0;
+  }
 }
 
-#chat-container  h2.userMsg:before {
+#chat-container h2.userMsg:before {
   content: "C";
   color: var(--secondary);
   background-color: white;
@@ -329,12 +339,12 @@ section {
   text-align: center;
   border-radius: 1rem;
   font-weight: 400;
-  font-size: .875rem;
+  font-size: 0.875rem;
   position: absolute;
   left: -2.375rem;
-  top:1.75rem;
-} 
-#chat-container  h2.userMsg:after {
+  top: 1.75rem;
+}
+#chat-container h2.userMsg:after {
   content: "🦙";
   color: var(--primary);
   font-weight: 400;
@@ -345,12 +355,12 @@ section {
   width: 1.75rem;
   height: 1.75rem;
   line-height: 1.75rem;
-  font-size: .75rem;
+  font-size: 0.75rem;
   text-align: center;
   position: absolute;
-  left:-2.375rem;
-  bottom:-3.625rem;
-} 
+  left: -2.375rem;
+  bottom: -3.625rem;
+}
 
 #settings {
   display: none;
@@ -373,16 +383,15 @@ section {
     max-width: 1000px;
     height: 80%;
     box-sizing: border-box;
-    padding:0;
+    padding: 0;
     background-color: var(--surface);
     border: 1px solid var(--secondary);
-    border-radius: .5rem;
+    border-radius: 0.5rem;
     overflow: hidden;
     display: flex;
     flex-direction: column;
   }
-  
-  
+
   header {
     display: flex;
     background-color: var(--surface);
@@ -398,13 +407,11 @@ section {
     font-size: 1.25rem;
     margin: 0;
     padding: 1rem 0;
-    
   }
   ul {
     margin: 0 0 2rem 0;
     padding: 0;
     display: table;
-     
   }
   ul li {
     display: table-row;
@@ -413,12 +420,12 @@ section {
     position: relative;
   }
   li.thead {
-    position: sticky; top: 0;
+    position: sticky;
+    top: 0;
     background-color: var(--surface);
     z-index: 1;
-    font-size: .875rem;
+    font-size: 0.875rem;
     font-weight: 500;
-
   }
   li:hover {
     background-color: var(--transparent24);
@@ -426,23 +433,23 @@ section {
   }
   li span {
     display: table-cell;
-    padding: .625rem .25rem;
-    color: var(--primary);
+    padding: 0.625rem 0.375rem;
+    color: var(--secondary);
     width: calc(33.33% - 10px);
     border-bottom: 1px solid var(--tertiary);
   }
-  li:last-child span{
+  li:last-child span {
     border-bottom: none;
   }
-  
+  ul li:has(button:hover) span {
+    color: var(--primary);
+  }
+
   li span:last-child {
     text-align: right;
     vertical-align: middle;
-
-    
   }
 }
-
 
 .col {
   display: flex;
@@ -463,21 +470,12 @@ section {
   padding: 0rem 3.5rem 0;
 }
 
-
-
 a:hover,
 .highlighted:hover {
   color: var(--link);
   text-decoration: 0.1em solid underline;
   cursor: pointer;
 }
-
-
-
-
-
-
-
 
 .input {
   display: flex;
@@ -528,10 +526,9 @@ button.basic {
   border: 1px solid var(--secondary);
   border-radius: 0.25rem;
   padding: 0.25rem 1rem;
-  font-size: .875rem;
+  font-size: 0.875rem;
   color: var(--primary);
   background-color: transparent;
-  
 }
 button.basic:hover {
   background-color: var(--tertiary);
@@ -542,18 +539,21 @@ button.basic:hover {
 button.icon {
   background-color: transparent;
   border: none;
+  
   color: var(--primary);
   padding: 0;
   margin: 0;
   width: 1.5rem;
   height: 1.5rem;
-  
+}
+button.icon:hover {
+  box-shadow: none;
 }
 
 .response {
   background-color: transparent;
   font-weight: 300;
-  max-width:64ch;
+  max-width: 64ch;
 
   .SD_img {
     width: 47%;
@@ -565,14 +565,12 @@ button.icon {
     box-sizing: border-box;
     box-shadow: 0 0 0 12px white;
   }
-  
 }
 .response:last-child::after {
   margin-block-end: 2rem;
   content: " end ";
-  color:transparent;
+  color: transparent;
 }
-
 
 #userinput {
   display: flex;
@@ -589,7 +587,7 @@ button.icon {
 }
 .halftone {
   --dotSize: 1px;
-  --bgSize: .5rem;
+  --bgSize: 0.5rem;
   --bgPosition: calc(var(--bgSize) / 2);
 
   background-image: radial-gradient(
@@ -667,7 +665,7 @@ button.icon {
       display: flex;
       flex-grow: 1;
       font-size: 1.25rem;
-     
+
       /* background-color: white; */
     }
 
@@ -802,7 +800,6 @@ input[type="file"] {
   animation: fadeInAnimation ease 0.5s;
   animation-iteration-count: 1;
   animation-fill-mode: forwards;
-  
 
   small {
     line-height: 1.75rem;
@@ -811,19 +808,15 @@ input[type="file"] {
   }
 }
 
-
-
 .modelInfo {
   font-size: 0.875rem;
   margin: 0;
   line-height: 1rem;
   background-color: var(--surface);
-  margin: 0.75rem 0 ;
+  margin: 0.75rem 0;
   padding: 0.375rem 0.5rem;
 }
 
 .hide {
   display: none !important;
 }
-
-
