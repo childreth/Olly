@@ -511,7 +511,10 @@ select {
   -webkit-appearance: none;
   /* Safari and Chrome */
   appearance: none;
+
+  
 }
+
 
 select:hover {
   cursor: pointer;

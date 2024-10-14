@@ -6,6 +6,7 @@
   import * as Utils from "$lib/utils.js";
   import SendButton from "$lib/components/sendButton.svelte";
   import Button from "$lib/components/button.svelte";
+  import Select from "$lib/components/select.svelte";
   import ColorPicker from "$lib/components/colorPicker.svelte";
   import Toggle from "$lib/components/darkModeToggle.svelte";
   import { appWindow } from "@tauri-apps/api/window";
@@ -361,7 +362,12 @@
 
     <section>
       <h4>General</h4>
-      <p style='display:flex;flex-direction:row;gap:2.5rem;'><Toggle  id="darkModeToggle"  /> <ColorPicker sett /></p>
+      <p style='display:flex;flex-direction:row;align-items:flex-end;gap:2.5rem;'>
+
+        <Select id='typeface' small={true} />
+        <Toggle  id="darkModeToggle"  />
+        <ColorPicker />
+      </p>
       <h4>Manage models</h4>
     <ul>
       <li class='thead'><span>Name</span> <span class='date'>Last updated</span> <span>Parameter</span><span>Quantization</span><span class='actions'>&nbsp;</span></li>
