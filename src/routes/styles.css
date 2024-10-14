@@ -1,5 +1,5 @@
 :root {
-  --hue: 190;
+  --hue: 200;
   --surface: hsl(var(--hue), 70%, 94%);
   --surface24: hsl(var(--hue), 80%, 94%, 0.24);
   --backgroundTransparent: hsl(var(--hue), 80%, 96%, 0.44);

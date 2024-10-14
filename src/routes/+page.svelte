@@ -39,8 +39,8 @@
 
   let darkMode = false;
 
-
-  const systemMsg = `You are a helpful assistant named 'Olly' Greet the user ${name}. 
+//very basic system prompt
+  const systemMsg = `You are a helpful assistant and greet the user ${name} on first response. 
       * Always format the response in markdown using header, lists, paragraphs, text formating. 
       * You can be playful in the response, occasionally add a pun and use of emojis.
       * If the user asks to play a game, you can choose one of the following games:

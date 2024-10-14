@@ -109,6 +109,7 @@ export function initTheme() {
         const report = await fetch(
           `https://api.weather.gov/points/${lat},${lon}`
         );
+        console.log('report: ',report)
         const locationGrid = await report.json();
         const forecastURL = locationGrid.properties.forecast
         
