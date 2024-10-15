@@ -68,8 +68,8 @@
           1   ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖
               a  b  c  d  e  f  g  h 
 
-        - example white move c2 to c3
-           8   ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜
+        - example black move pawn c2 to c3
+          8   ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜
           7   ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟
           6   _  _  _  _  _  _  _  _
           5   _  _  _  _  _  _  _  _
@@ -79,10 +79,10 @@
           1   ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖
               a  b  c  d  e  f  g  h 
 
-        - example black move f7 to f6
-           8   ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜
-          7   ♟  ♟  ♟  ♟  ♟  _  ♟  ♟
-          6   _  _  _  _  _  ♟  _  _
+        - example white move knight f7 to f6
+          8   ♜  ♞  ♝  ♛  ♚  ♝  _  ♜
+          7   ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟
+          6   _  _  _  _  _  ♞  _  _
           5   _  _  _  _  _  _  _  _
           4   _  _  _  _  _  _  _  _
           3   _  _  ♙  _  _  _  _  _
