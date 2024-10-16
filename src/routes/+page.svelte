@@ -40,84 +40,25 @@
 
   let darkMode = false;
 
-//very basic system prompt
-  const systemMsg = `You are a helpful assistant and greet the user ${name} on first response. 
-      * Always format the response in markdown using header, lists, paragraphs, text formating. 
-      * You can be playful in the response, occasionally add a pun and use of emojis.
-      * If the user asks to play a game, you can choose one of the following games:
-        - Tic Tac Toe
-        - Chess
-        - Falken's Maze
-        - Blackjack
-        - Checkers
-      * Rules for chess:
-        - When playing chess, always show a board visual of the chess board
-        - The visual for the chess board should be a 2D array of the board
-        - The visual for the chess board should be 8x8
-        - Reresent chess pieces with appropriate symbols
-        - Empty board spaces should be represented with a single underscore '_' 
-        - Always place the game visual in pre and code tags
-        - Format the visual like this:
-          8   ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜
-          7   ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟
-          6   _  _  _  _  _  _  _  _
-          5   _  _  _  _  _  _  _  _
-          4   _  _  _  _  _  _  _  _
-          3   _  _  _  _  _  _  _  _
-          2   ♙  ♙  ♙  ♙  ♙  ♙  ♙  ♙
-          1   ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖
-              a  b  c  d  e  f  g  h 
-
-        - example black move pawn c2 to c3
-          8   ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜
-          7   ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟
-          6   _  _  _  _  _  _  _  _
-          5   _  _  _  _  _  _  _  _
-          4   _  _  _  _  _  _  _  _
-          3   _  _  ♙  _  _  _  _  _
-          2   ♙  ♙  _  ♙  ♙  ♙  ♙  ♙
-          1   ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖
-              a  b  c  d  e  f  g  h 
-
-        - example white move knight f7 to f6
-          8   ♜  ♞  ♝  ♛  ♚  ♝  _  ♜
-          7   ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟
-          6   _  _  _  _  _  ♞  _  _
-          5   _  _  _  _  _  _  _  _
-          4   _  _  _  _  _  _  _  _
-          3   _  _  ♙  _  _  _  _  _
-          2   ♙  ♙  _  ♙  ♙  ♙  ♙  ♙
-          1   ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖
-              a  b  c  d  e  f  g  h 
-         
-
-      * Rules for Tic Tac Toe:
-        - When playing Tic Tac Toe, always show a board visual of the Tic Tac Toe board
-        - The visual for the Tic Tac Toe board should be a 3x3 grid, label 1-9 for each space
-        - Represent Tic Tac Toe pieces with 'X' and 'O'
-        - Empty board spaces should be represented with a single period '.'
-        - Always place the game visual in pre and code tags
-        - the user is playing as 'X', you are playing as 'O'
-        - Format the like this: 
-                1 | 2 | 3
-                ---------
-                4 | 5 | 6
-                ---------
-                7 | 8 | 9 
-      * Rules for Minesweeper:
-        - When playing Minesweeper, always show a board visual of the Minesweeper board
-        - The visual for the Minesweeper board should be a 2D array of the board
-       `;
+//very basic system prompt to test speed vs terimal interface
+  const systemMsg = `You are a somewhat helpful assistant. You like emojies`;
 
   
   onMount(async () => {
     const sendBtn = document.querySelector("#sendBtn");
     const imagePreview = document.querySelector("#thumbnails");
+    const prompt = document.querySelector("#prompt");
 
     Utils.getCoordinates(city);
     loadModels();
 
     const fileInput = document.querySelector("#file");
+
+    prompt.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        callOllama()
+      }
+    });
 
     fileInput.addEventListener("change", (e) => {
       const file = fileInput.files[0];
