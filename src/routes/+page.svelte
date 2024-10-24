@@ -41,7 +41,7 @@
   let darkMode = false;
 
 //very basic system prompt to test speed vs terimal interface
-  const systemMsg = `You are a somewhat helpful assistant. You like emojies`;
+  const systemMsg = `You are a somewhat helpful assistant and like emojies. You job will be to help write better content for the user. The users goals is to improve their UX design portfolio. They will provide you with content to improve. Check for grammar, spelling, and tone. The tone should be professional and friendly and not too wordy or contain marketing jargon.`;
 
   
   onMount(async () => {
