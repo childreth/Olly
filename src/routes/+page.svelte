@@ -41,7 +41,7 @@
   let darkMode = false;
 
 //very basic system prompt to test speed vs terimal interface
-  const systemMsg = `You are a somewhat helpful assistant and like emojies. You job will be to help write better content for the user. The users goals is to improve their UX design portfolio. They will provide you with content to improve. Check for grammar, spelling, and tone. The tone should be professional and friendly and not too wordy or contain marketing jargon.`;
+  const systemMsg = `You are a somewhat helpful assistant and like emojies. You job will be to help write better content for the user.`;
 
   
   onMount(async () => {
@@ -136,6 +136,18 @@
     }
   }
 
+  async function askClaude(userMsg) {
+  try {
+    const response = await invoke('ask_claude', {
+      prompt: userMsg
+    });
+    streamedGreeting += response;
+    console.log(response);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 
 
 
@@ -155,7 +167,7 @@
         
       ];
     });
-    loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"]);
+    loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"],["Claude - 3.5 Sonnet (20241022)","Not local - External API","N/A","N/A"]);
     
     //manually add names here
   }
@@ -170,7 +182,9 @@
   }
 
   async function callOllama() {
+    
     userMsg = document.querySelector("#prompt").textContent || "";
+
     //add user message to the top of the chat
     streamedGreeting += `<h2 class="userMsg"> <span>${userMsg}</span>` + 
       `${theThumbnail != "" ? `<img src="${theThumbnail}" alt="User uploaded image">` : ""}
@@ -207,8 +221,8 @@
 
     if (selectedModel === "Fal - Flux") {
       falImage();
-    } else if (selectedModel === "Canary Chrome") {
-      canaryChrome();
+    } else if (selectedModel === "Claude - 3.5 Sonnet (20241022)") {
+      askClaude(userMsg);
     } else {
       console.log("chatConvo:", chatConvo);
       isStreaming = true;
