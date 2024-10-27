@@ -10,6 +10,9 @@ fn greet(name: &str) -> String {
 }
 
 fn main() {
+    // Load .env file
+    dotenvy::dotenv().ok();
+    
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![greet, ask_claude])
         .run(tauri::generate_context!())
@@ -47,6 +50,10 @@ struct Content {
 async fn ask_claude(prompt: String) -> Result<String, String> {
     let client = reqwest::Client::new();
     
+    // Load API key from environment
+    let api_key = std::env::var("CLAUDE_API_KEY")
+        .map_err(|e| e.to_string())?;
+    
     let request = ClaudeRequest {
         model: "claude-3-sonnet-20240229".to_string(),
         messages: vec![Message {
@@ -58,7 +65,7 @@ async fn ask_claude(prompt: String) -> Result<String, String> {
 
     let response = client
         .post("https://api.anthropic.com/v1/messages")
-        .header("x-api-key", "api_key_here")
+        .header("x-api-key", api_key)
         .header("anthropic-version", "2023-06-01")
         .header("content-type", "application/json")
         .json(&request)
@@ -73,4 +80,3 @@ async fn ask_claude(prompt: String) -> Result<String, String> {
 
     Ok(claude_response.content[0].text.clone())
 }
-
