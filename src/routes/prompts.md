@@ -88,3 +88,6 @@
                 ---------
                 7 | 8 | 9 
        
+
+/////// autocomplete prompt //////
+i have a pet cat who likes to 
