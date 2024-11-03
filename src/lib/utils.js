@@ -6,7 +6,7 @@ export async function getIcon(weather) {
   const ollama = new Ollama({ host: "http://localhost:11434" });
   
   const response = await ollama.chat({
-    model: 'gemma2:2b',
+    model: 'smollm2:360m',
     "options": {
     //"seed": 101,
     "temperature": 0
@@ -17,6 +17,7 @@ export async function getIcon(weather) {
         -You will be provided with a weather condition and time of day (day or night) and will return an icon name from the list below that represents the weather condition and time of day provided. 
         - Return only the icon names from the list. Do not include or add any other text.  
         - If you are unable to find a match, return the icon name for 'sad_face'.
+        - Do not return any other text than icon names.
       </instructions>
 
       <icon list names>
@@ -24,8 +25,8 @@ export async function getIcon(weather) {
       - cloudy_night
       - clear_foggy
       - foggy
-      - sunny
-      - cloudy_sunny
+      - clear_sunny
+      - partly_cloudy_sunny
       - rain
       - snow
       - thunderstorms
