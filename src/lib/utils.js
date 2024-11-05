@@ -17,8 +17,14 @@ export async function getIcon(weather) {
         -You will be provided with a weather condition and time of day (day or night) and will return an icon name from the list below that represents the weather condition and time of day provided. 
         - Return only the icon names from the list. Do not include or add any other text.  
         - If you are unable to find a match, return the icon name for 'sad_face'.
-        - Do not return any other text than icon names.
+        - Do not return any other text than icon names from the provided list.
+        - return in json format 
       </instructions>
+
+      <response format>
+        { "iconName": "icon name from list" }
+      }
+      </response format>
 
       <icon list names>
       - clear_night
@@ -38,8 +44,10 @@ export async function getIcon(weather) {
       { role: 'user', content: weather }
     ],
   })
-  let iconName = (response.message.content).replace(/[\r\n\s]/g,'')+'.svg'
-  console.log('weather: ',weather, iconName)
+ // let iconName = (response.message.content).replace(/[\r\n\s]/g,'')+'.svg'
+  let responseObject = JSON.parse(response.message.content)
+  let iconName = responseObject.iconName + '.svg'
+  console.log('weather: ',weather, responseObject.iconName)
   return iconName
   
 }
