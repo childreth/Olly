@@ -205,6 +205,8 @@
         content: userMsg,
         images: theImage,
       };
+      //clear the image array
+      theImage = [];
       //chatConvo[countConvo++] = { role: "user", images: [theImage] };
     } else {
       chatConvo[countConvo++] = {

@@ -12,13 +12,14 @@ export async function getIcon(weather) {
     "temperature": 0
   },
     messages: [
-      { role: 'system', content: `You job is to match a weather condition to an icon name in the list below.  
+      { role: 'system', content: `You job is to match a weather condition to an icon name in the list provided.  
       <instructions>
         -You will be provided with a weather condition and time of day (day or night) and will return an icon name from the list below that represents the weather condition and time of day provided. 
-        - Return only the icon names from the list. Do not include or add any other text.  
+        - Match only to the icon names from the 'icon list'. 
+        - Do not include or add any other text.  
         - If you are unable to find a match, return the icon name for 'sad_face'.
-        - Do not return any other text than icon names from the provided list.
-        - return in json format 
+        - Do not return any other text than icon names that match from the provided 'icon list'.
+        - Return in json format 
       </instructions>
 
       <response format>
@@ -26,19 +27,20 @@ export async function getIcon(weather) {
       }
       </response format>
 
-      <icon list names>
+      <icon list>
       - clear_night
       - cloudy_night
       - clear_foggy
       - foggy
       - clear_sunny
+      - mostly_sunny
       - partly_cloudy_sunny
       - rain
       - snow
       - thunderstorms
       - windy
       - sad_face
-      </icon list names>
+      </icon list>
 
         `},
       { role: 'user', content: weather }
