@@ -6,4 +6,5 @@ Personal project to learn  more about local AI development with SvelteKit and Ta
 
 ![image](/static/Olly.gif)
 
-
+## Ollama
+For CORS issues run: launchctl setenv OLLAMA_ORIGINS "*"
