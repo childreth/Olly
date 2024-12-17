@@ -11,7 +11,7 @@ Areas to explore next:
 - RAG and Conversation history
 - Canvas interactions to create more multimodal experiences, like drawing to generate or edit.
 
-Doesn’t play games as well as WOPR...yet and planning to eventually distribute it on the App Store, but for now you can check it out on GitHub.Personal project to learn  more about local AI development with SvelteKit and Tauri. Using AI to its full potential...Dad joke generator.
+Doesn’t play games as well as WOPR...yet. Planning to eventually distribute it on the App Store, but for now you can check it here. Personal project to learn  more about local AI development with SvelteKit and Tauri. Using AI to its full potential...Dad joke generator.
 
 ### [YouTube Demo](https://youtu.be/j8HyOpyCduw)
 
