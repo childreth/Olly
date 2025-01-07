@@ -6,7 +6,7 @@ export async function getIcon(weather) {
   const ollama = new Ollama({ host: "http://localhost:11434" });
   
   const response = await ollama.chat({
-    model: 'smollm2:360m',
+    model: 'smollm2:1.7b',
     "options": {
     //"seed": 101,
     "temperature": 0
@@ -34,7 +34,7 @@ export async function getIcon(weather) {
       - foggy
       - clear_sunny
       - mostly_sunny
-      - partly_cloudy_sunny
+      - partly_sunny
       - rain
       - snow
       - thunderstorms
