@@ -9,7 +9,8 @@ export async function getIcon(weather) {
     model: 'smollm2:1.7b',
     "options": {
     //"seed": 101,
-    "temperature": 0
+    "temperature": 1,
+    "format": "json"
   },
     messages: [
       { role: 'system', content: `You job is to match a weather condition to an icon name in the list provided.  
@@ -19,7 +20,7 @@ export async function getIcon(weather) {
         - Do not include or add any other text.  
         - If you are unable to find a match, return the icon name for 'sad_face'.
         - Do not return any other text than icon names that match from the provided 'icon list'.
-        - Return in json format 
+        - Think about it in step. First understand the weather condition and time of day and then choose an icon name from the list that is closest to weather condition. 
       </instructions>
 
       <response format>
@@ -47,12 +48,15 @@ export async function getIcon(weather) {
     ],
   })
  // let iconName = (response.message.content).replace(/[\r\n\s]/g,'')+'.svg'
+ console.log('respose',response.message.content)
   let responseObject = JSON.parse(response.message.content)
+  console.log('responseObject: ',responseObject)
   let iconName = responseObject.iconName + '.svg'
-  console.log('weather: ',weather, responseObject.iconName)
+  console.log('weather: ',weather, iconName)
   return iconName
   
 }
+
 
 export function toggleTheme() {
   console.log('toggling theme')
