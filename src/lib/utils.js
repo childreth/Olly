@@ -6,10 +6,10 @@ export async function getIcon(weather) {
   const ollama = new Ollama({ host: "http://localhost:11434" });
   
   const response = await ollama.chat({
-    model: 'smollm2:1.7b',
+    model: 'smollm2:360m',
     "options": {
     //"seed": 101,
-    "temperature": 1,
+    "temperature": 0,
     "format": "json"
   },
     messages: [
@@ -65,10 +65,10 @@ export function toggleTheme() {
   
   if (currentTheme === 'dark') {
     body.setAttribute('data-theme', 'light');
-    // localStorage.setItem('theme', 'light');
+    localStorage.setItem('theme', 'light');
   } else {
     body.setAttribute('data-theme', 'dark');
-    // localStorage.setItem('theme', 'dark');
+    localStorage.setItem('theme', 'dark');
   }
 }
 
