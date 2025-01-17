@@ -6,7 +6,7 @@ export async function getIcon(weather) {
   const ollama = new Ollama({ host: "http://localhost:11434" });
   
   const response = await ollama.chat({
-    model: 'smollm2:360m',
+    model: 'smollm2:1.7b',
     "options": {
     //"seed": 101,
     "temperature": 0,
@@ -21,12 +21,9 @@ export async function getIcon(weather) {
         - If you are unable to find a match, return the icon name for 'sad_face'.
         - Do not return any other text than icon names that match from the provided 'icon list'.
         - Think about it in step. First understand the weather condition and time of day and then choose an icon name from the list that is closest to weather condition. 
+        - Use this response format: { "iconName": "icon name from list" }
       </instructions>
 
-      <response format>
-        { "iconName": "icon name from list" }
-      }
-      </response format>
 
       <icon list>
       - clear_night
