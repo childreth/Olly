@@ -2,6 +2,16 @@
   export let checked = true;
   export let cta = true;
   export let id = '';
+  import { onMount } from 'svelte';
+
+  onMount(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      checked = savedTheme === 'dark';
+      document.body.setAttribute('data-theme', savedTheme);
+    }
+  });
+  
   $: mode = checked ? 'on' : 'off';
 
   function handleChange() {
@@ -12,11 +22,12 @@
   
   if (!checked) {
     body.setAttribute('data-theme', 'light');
-    // localStorage.setItem('theme', 'light');
+    localStorage.setItem('theme', 'light');
   } else {
     body.setAttribute('data-theme', 'dark');
-    // localStorage.setItem('theme', 'dark');
+    localStorage.setItem('theme', 'dark');
   }
+  console.log('localStorage',localStorage.getItem('theme'))
   }
 </script>
 
