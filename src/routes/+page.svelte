@@ -15,10 +15,12 @@
   import { confirm } from "@tauri-apps/api/dialog";
 
   import { fetch, ResponseType } from "@tauri-apps/api/http";
+  // Use this to get the environment variable
+
 
   //basic API call
   const API_URL = "https://rickandmortyapi.com/api/episode";
-  let selectedModel = "llama3.1:latest";
+  let selectedModel = "smollm2:1.7b";
   let activeModel = "";
   let result = "";
   let theImage= [];
@@ -48,6 +50,9 @@
     const sendBtn = document.querySelector("#sendBtn");
     const imagePreview = document.querySelector("#thumbnails");
     const prompt = document.querySelector("#prompt");
+    const apiKey = await invoke('get_env', { name: 'CLAUDE_API_KEY' });
+    
+    
 
     Utils.getCoordinates(city);
     loadModels();
