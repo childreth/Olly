@@ -37,6 +37,7 @@ struct ClaudeRequest {
     model: String,
     messages: Vec<Message>,
     max_tokens: u32,
+    temperature: f32,
 }
 
 #[derive(Serialize)]
@@ -90,12 +91,13 @@ async fn ask_claude(prompt: String) -> Result<String, String> {
     info!("Successfully loaded API key");
     
     let request = ClaudeRequest {
-        model: "claude-3-sonnet-20240229".to_string(),
+        model: "claude-3-5-sonnet-20241022".to_string(),
         messages: vec![Message {
             role: "user".to_string(),
             content: prompt,
         }],
         max_tokens: 1024,
+        temperature: 0.0,
     };
 
     info!("Sending request to Claude API...");
