@@ -133,7 +133,7 @@ export function initTheme() {
 
         const icon = await getIcon(iconWeather)
         
-        theIcon.style.mask = `url('/src/lib/images/weather/${icon}')`;
+        theIcon.style.mask = `url('/weather-icons/${icon}')`;
         theWeather.textContent = `${forecastDetails.name}: ${forecastDetails.temperature}°F`;
         // theWeatherDetails.textContent = `${forecastDetails.shortForecast}`;
     }
@@ -184,7 +184,3 @@ export function formatDate(dateString) {
   };
   return date.toLocaleString('en-US', options);
 }
-
-
-
-

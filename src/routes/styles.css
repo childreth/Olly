@@ -238,7 +238,7 @@ header {
     .weather-icon {
       width: 24px;
       height: 24px;
-      mask: url("$lib/images/weather/sunny.svg") no-repeat center;
+      mask: url("/weather-icons/sunny.svg") no-repeat center;
       background-color: currentColor;
       margin-inline-end: 0.375rem;
     }
