@@ -1,4 +1,6 @@
 <script>
+  import { createEventDispatcher } from 'svelte';
+  const dispatch = createEventDispatcher();
   export let color = "#009999";
 
   function handleColorChange(event) {
@@ -33,7 +35,8 @@
     };
 
     const hue = hexToHSL(color);
-    document.documentElement.style.setProperty("--hue", hue);
+    document.documentElement.style.setProperty("--hue", hue.toString());
+    dispatch('colorChange', { color });
     let style = getComputedStyle(document.body);
     //localStorage.setItem('themeColor', color);
   }

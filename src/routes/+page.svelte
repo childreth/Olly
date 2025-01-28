@@ -18,7 +18,7 @@
   // Use this to get the environment variable
 
 
-  //basic API call
+  //basic API call for testing tools
   const API_URL = "https://rickandmortyapi.com/api/episode";
   let selectedModel = "smollm2:1.7b";
   let activeModel = "";
@@ -41,12 +41,36 @@
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
   let darkMode = false;
+  let themeColor = "#009999"; // default color
 
 //very basic system prompt to test speed vs terimal interface
-  const systemMsg = `You are a somewhat helpful assistant and like emojies. You job will be to help write better content for the user.`;
+  const systemMsg = `You are a somewhat helpful assistant and like really responsing with emojies. You job will be to help write better content for the user.`;
 
   
   onMount(async () => {
+    const savedColor = localStorage.getItem('themeColor');
+    if (savedColor) {
+      themeColor = savedColor;
+      const hexToHSL = (hex) => {
+        hex = hex.replace(/^#/, "");
+        let r = parseInt(hex.slice(0, 2), 16) / 255;
+        let g = parseInt(hex.slice(2, 4), 16) / 255;
+        let b = parseInt(hex.slice(4, 6), 16) / 255;
+        let cmin = Math.min(r, g, b),
+          cmax = Math.max(r, g, b),
+          delta = cmax - cmin,
+          h = 0;
+        if (delta === 0) h = 0;
+        else if (cmax === r) h = ((g - b) / delta) % 6;
+        else if (cmax === g) h = (b - r) / delta + 2;
+        else h = (r - g) / delta + 4;
+        h = Math.round(h * 60);
+        if (h < 0) h += 360;
+        return h;
+      };
+      document.documentElement.style.setProperty("--hue", hexToHSL(savedColor).toString());
+    }
+
     const sendBtn = document.querySelector("#sendBtn");
     const imagePreview = document.querySelector("#thumbnails");
     const prompt = document.querySelector("#prompt");
@@ -314,6 +338,11 @@
       sendBtn.textContent = "Send";
     }
   }
+
+  function handleColorChange(event) {
+    const { color } = event.detail;
+    localStorage.setItem('themeColor', color);
+  }
 </script>
 
 <div id="settings">
@@ -328,7 +357,7 @@
 
         <Select id='typeface' small={true} />
         <Toggle  id="darkModeToggle"  />
-        <ColorPicker />
+        <ColorPicker color={themeColor} on:colorChange={handleColorChange} />
       </p>
       <h4>Manage models</h4>
     <ul>
