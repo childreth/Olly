@@ -11,6 +11,6 @@ vite.config.ts.timestamp-*
 
 # Environment variables
 .env
-src-tauri/Config.toml
+#src-tauri/Config.toml
 
 
