@@ -41,7 +41,7 @@
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
   let darkMode = false;
-  let themeColor = "#009999"; // default color
+  let themeColor = "#000099"; // default color
 
 //very basic system prompt to test speed vs terimal interface
   const systemMsg = `You are a somewhat helpful assistant and like really responsing with emojies. You job will be to help write better content for the user.`;
