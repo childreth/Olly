@@ -50,7 +50,7 @@
     name="head"
     value={color}
   />
-  <label for="head">Theme color</label>
+  <label for="head">Theme colors</label>
 </div>
 
 <style lang="scss">
