@@ -34,7 +34,7 @@
   let tokenSpeed = 0;
   let tokenCount = 0;
   const city = "Westford,MA";
-  let name = "Chris";
+  let name = "Craig";
   let loadModelNames = [];
   let isStreaming = false;
   let abortController = new AbortController();
