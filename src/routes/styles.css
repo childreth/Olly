@@ -110,6 +110,26 @@ p.subtitle {
   font-size: 1.5rem;
 }
 
+table {
+  margin: 1rem 0;
+  border: 1px solid var(--tertiary);
+  border-radius: 0.5rem;
+
+  tr {
+    border: 1px solid var(--tertiary);
+  }
+
+
+  td,th {
+    padding: 0.25rem 1rem;
+    border-bottom: 1px solid var(--tertiary);
+    text-align: left;
+  }
+}
+table tr:last-child td,th {
+  border-bottom: none;
+}
+
 p,
 s ol,
 ul {
