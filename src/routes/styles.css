@@ -114,6 +114,7 @@ table {
   margin: 1rem 0;
   border: 1px solid var(--tertiary);
   border-radius: 0.5rem;
+  border-spacing: 0;
 
   tr {
     border: 1px solid var(--tertiary);
@@ -124,6 +125,7 @@ table {
     padding: 0.25rem 1rem;
     border-bottom: 1px solid var(--tertiary);
     text-align: left;
+    font-size: 1rem;
   }
 }
 table tr:last-child td,th {
