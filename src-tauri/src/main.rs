@@ -91,7 +91,7 @@ async fn ask_claude(prompt: String) -> Result<String, String> {
     info!("Successfully loaded API key");
     
     let request = ClaudeRequest {
-        model: "claude-3-5-sonnet-20241022".to_string(),
+        model: "claude-3-7-sonnet-20250219".to_string(),
         messages: vec![Message {
             role: "user".to_string(),
             content: prompt,

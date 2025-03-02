@@ -196,7 +196,7 @@
         
       ];
     });
-    loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"],["Claude 3.5 Sonnet (Latest)","Not local - External API","N/A","N/A"]);
+    loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"],["Claude 3.7 Sonnet (Latest)","Not local - External API","N/A","N/A"]);
     
     //manually add names here
   }
@@ -252,7 +252,7 @@
 
     if (selectedModel === "Fal - Flux") {
       falImage();
-    } else if (selectedModel === "Claude 3.5 Sonnet (Latest)") {
+    } else if (selectedModel === "Claude 3.7 Sonnet (Latest)") {
       askClaude(userMsg);
     } else {
       console.log("chatConvo:", chatConvo);
