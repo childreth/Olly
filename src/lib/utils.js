@@ -54,6 +54,23 @@ export async function getIcon(weather) {
   
 }
 
+export function lightenColor(hex, percent) {
+  // Remove the # if it exists
+  hex = hex.replace(/^#/, '');
+  
+  // Parse the hex values to RGB
+  let r = parseInt(hex.slice(0, 2), 16);
+  let g = parseInt(hex.slice(2, 4), 16);
+  let b = parseInt(hex.slice(4, 6), 16);
+  
+  // Calculate the lighter color
+  r = Math.min(255, Math.floor(r + (255 - r) * (percent / 100)));
+  g = Math.min(255, Math.floor(g + (255 - g) * (percent / 100)));
+  b = Math.min(255, Math.floor(b + (255 - b) * (percent / 100)));
+  
+  // Convert back to hex
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
 
 export function toggleTheme() {
   console.log('toggling theme')

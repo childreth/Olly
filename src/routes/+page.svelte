@@ -10,6 +10,7 @@
   import ColorPicker from "$lib/components/colorPicker.svelte";
   import Toggle from "$lib/components/darkModeToggle.svelte";
   import { appWindow } from "@tauri-apps/api/window";
+  import { listen } from '@tauri-apps/api/event';
 
   import { open } from "@tauri-apps/api/dialog";
   import { confirm } from "@tauri-apps/api/dialog";
@@ -39,6 +40,12 @@
   let isStreaming = false;
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
+  let perplexityApiKey = "";
+
+  let claudeApiKey = '';
+  let unlisten = null;
+  let unlistenPerplexity = null;
+  let unlistenPerplexityDone = null;
 
   let darkMode = false;
   let themeColor = "#000099"; // default color
@@ -51,64 +58,73 @@
     const savedColor = localStorage.getItem('themeColor');
     if (savedColor) {
       themeColor = savedColor;
-      const hexToHSL = (hex) => {
-        hex = hex.replace(/^#/, "");
-        let r = parseInt(hex.slice(0, 2), 16) / 255;
-        let g = parseInt(hex.slice(2, 4), 16) / 255;
-        let b = parseInt(hex.slice(4, 6), 16) / 255;
-        let cmin = Math.min(r, g, b),
-          cmax = Math.max(r, g, b),
-          delta = cmax - cmin,
-          h = 0;
-        if (delta === 0) h = 0;
-        else if (cmax === r) h = ((g - b) / delta) % 6;
-        else if (cmax === g) h = (b - r) / delta + 2;
-        else h = (r - g) / delta + 4;
-        h = Math.round(h * 60);
-        if (h < 0) h += 360;
-        return h;
-      };
-      document.documentElement.style.setProperty("--hue", hexToHSL(savedColor).toString());
+      document.documentElement.style.setProperty('--theme-color', themeColor);
+      document.documentElement.style.setProperty('--theme-color-light', Utils.lightenColor(themeColor, 20));
+      document.documentElement.style.setProperty('--theme-color-lighter', Utils.lightenColor(themeColor, 40));
     }
 
-    const sendBtn = document.querySelector("#sendBtn");
-    const imagePreview = document.querySelector("#thumbnails");
+    const savedDarkMode = localStorage.getItem('darkMode');
+    if (savedDarkMode === 'true') {
+      darkMode = true;
+      document.documentElement.classList.add('dark-mode');
+    }
+
     const prompt = document.querySelector("#prompt");
     const apiKey = await invoke('get_env', { name: 'CLAUDE_API_KEY' });
-    
-    
+    perplexityApiKey = await invoke('get_env', { name: 'PERPLEXITY_API_KEY' });
+    claudeApiKey = await invoke('get_env', { name: 'CLAUDE_API_KEY' });
+
+    // Listen for Claude streaming events
+    unlisten = await listen('claude-stream', (event) => {
+      streamedGreeting += event.payload;
+      Utils.addCopyButtonToPre();
+    });
+
+    // Listen for Perplexity streaming events
+    unlistenPerplexity = await listen('perplexity-stream', (event) => {
+      streamedGreeting += event.payload;
+      Utils.addCopyButtonToPre();
+    });
+
+    // Listen for Perplexity streaming completion
+    unlistenPerplexityDone = await listen('perplexity-stream-done', (event) => {
+      lastChatResponse = event.payload;
+      isStreaming = false;
+      Utils.addCopyButtonToPre();
+    });
 
     Utils.getCoordinates(city);
     loadModels();
 
     const fileInput = document.querySelector("#file");
 
-    prompt.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        callOllama()
-      }
-    });
-
-    fileInput.addEventListener("change", (e) => {
-      const file = fileInput.files[0];
-      const reader = new FileReader();
-
-      reader.addEventListener("load", () => {
-        let uploadedImg = reader.result.split(",")[1];
-        theThumbnail = reader.result;
-        theImage.push(uploadedImg);
-        // for thumbnail
-        let thumbnail = document.createElement("img");
-        thumbnail.src = reader.result;
-        imagePreview?.appendChild(thumbnail);
-        //document.querySelector("#thumbs").src = reader.result;
-
-        //let theImageURL = URL.createObjectURL(fileInput.files[0]);
-        //theImage = fileInput.files[0];1
-        console.log("reader: ", theImage);
+    if (prompt) {
+      prompt.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          callOllama();
+        }
       });
-      reader.readAsDataURL(file);
-    });
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener('change', () => {
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            if (reader.result) {
+              if (typeof reader.result === 'string') {
+                theImage = reader.result.split(',');
+                theThumbnail = reader.result;
+                console.log('image uploaded')
+              }
+            }
+          };
+          reader.readAsDataURL(fileInput.files[0]);
+        }
+      });
+    }
+
     document
       .getElementById("titlebar-minimize")
       .addEventListener("click", () => appWindow.minimize());
@@ -177,8 +193,57 @@
   }
 }
 
+  async function askPerplexity(userMsg) {
+    try {
+      if (!perplexityApiKey) {
+        streamedGreeting += "Error: PERPLEXITY_API_KEY environment variable is not set. Please add it to your .env file.";
+        return;
+      }
 
+      // Format messages for Perplexity API
+      let messages = chatConvo.map(msg => {
+        return {
+          role: msg.role,
+          content: msg.content
+        };
+      });
 
+      // Add image support if available
+      const multimodal = theImage.length > 0;
+      
+      console.log("Sending request to Perplexity API with messages:", messages);
+
+      // Create the request body as a JSON object
+      const requestBody = {
+        model: "sonar",
+        messages: messages,
+        multimodal: multimodal
+      };
+
+      // Use streaming if available
+      isStreaming = true;
+      
+      try {
+        await invoke('stream_perplexity', {
+          apiKey: perplexityApiKey,
+          requestBody: JSON.stringify(requestBody)
+        });
+        
+        // The streaming response will be handled by the event listeners
+        // No need to update streamedGreeting here as it's done in the event listener
+        
+        // Token metrics will be updated when streaming is complete
+      } catch (error) {
+        console.error("Error from Perplexity API streaming:", error);
+        streamedGreeting += `Error calling Perplexity API: ${error}`;
+        isStreaming = false;
+      }
+    } catch (error) {
+      streamedGreeting += `Error: ${error.message || "Unknown error occurred"}`;
+      console.error("Error during Perplexity API call:", error);
+      isStreaming = false;
+    }
+  }
 
   async function loadModels() {
     const ollama = new Ollama({ host: "http://localhost:11434" });
@@ -196,7 +261,11 @@
         
       ];
     });
-    loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"],["Claude 3.7 Sonnet (Latest)","Not local - External API","N/A","N/A"]);
+    loadModelNames.unshift(
+      ["Perplexity - Sonar", "Not local - External API", "N/A", "N/A"],
+      ["Fal - Flux", "Not local - External API", "N/A", "N/A"],
+      ["Claude 3.7 Sonnet (Latest)", "Not local - External API", "N/A", "N/A"]
+    );
     
     //manually add names here
   }
@@ -250,7 +319,9 @@
       };
     }
 
-    if (selectedModel === "Fal - Flux") {
+    if (selectedModel === "Perplexity - Sonar") {
+      askPerplexity(userMsg);
+    } else if (selectedModel === "Fal - Flux") {
       falImage();
     } else if (selectedModel === "Claude 3.7 Sonnet (Latest)") {
       askClaude(userMsg);
