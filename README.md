@@ -4,6 +4,8 @@ Personal project to continue self-development and exploration with AI. I'm build
 
 So far, have the basics of the app set up: Ollama serving the LLMs via the API, rendering markdown, added conversational and vision capabilities, implementing basic model and theme management, and even having AI determine the appropriate UI iconography based on the weather.
 
+npm run tauri dev
+
 Areas to explore next:
 
 - Using Tauri to access native system APIs to integrate with other desktop apps.
