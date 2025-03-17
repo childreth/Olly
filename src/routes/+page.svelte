@@ -46,21 +46,28 @@
   let unlisten = null;
   let unlistenPerplexity = null;
   let unlistenPerplexityDone = null;
+  let unlistenClaude = null;
+  let unlistenClaudeDone = null;
 
   let darkMode = false;
   let themeColor = "#000099"; // default color
 
 //very basic system prompt to test speed vs terimal interface
-  const systemMsg = `You are a somewhat helpful assistant and like really responsing with emojies. You job will be to help write better content for the user.`;
+  const systemMsg = `You are a somewhat helpful assistant and like really responsing with emojies. You job will be to help write better content for the user. Return response with markdown formating. Choose appropriate markdown elements for the content asked for.`;
 
-  
+  // Configure marked with minimal options
+  marked.setOptions({
+    breaks: true,    // Convert \n to <br>
+    gfm: true        // Use GitHub Flavored Markdown
+  });
+
   onMount(async () => {
     const savedColor = localStorage.getItem('themeColor');
     if (savedColor) {
       themeColor = savedColor;
-      document.documentElement.style.setProperty('--theme-color', themeColor);
-      document.documentElement.style.setProperty('--theme-color-light', Utils.lightenColor(themeColor, 20));
-      document.documentElement.style.setProperty('--theme-color-lighter', Utils.lightenColor(themeColor, 40));
+      document.documentElement.style.setProperty('--themeColor', themeColor);
+      document.documentElement.style.setProperty('--themeColor-light', Utils.lightenColor(themeColor, 20));
+      document.documentElement.style.setProperty('--themeColor-lighter', Utils.lightenColor(themeColor, 40));
     }
 
     const savedDarkMode = localStorage.getItem('darkMode');
@@ -74,12 +81,6 @@
     perplexityApiKey = await invoke('get_env', { name: 'PERPLEXITY_API_KEY' });
     claudeApiKey = await invoke('get_env', { name: 'CLAUDE_API_KEY' });
 
-    // Listen for Claude streaming events
-    unlisten = await listen('claude-stream', (event) => {
-      streamedGreeting += event.payload;
-      Utils.addCopyButtonToPre();
-    });
-
     // Listen for Perplexity streaming events
     unlistenPerplexity = await listen('perplexity-stream', (event) => {
       streamedGreeting += event.payload;
@@ -88,9 +89,20 @@
 
     // Listen for Perplexity streaming completion
     unlistenPerplexityDone = await listen('perplexity-stream-done', (event) => {
+      console.log('Perplexity stream completed, full response:', event.payload);
       lastChatResponse = event.payload;
       isStreaming = false;
       Utils.addCopyButtonToPre();
+    });
+
+    // Listen for Claude streaming events
+    unlistenClaude = await listen('claude-stream', (event) => {
+      streamedGreeting += event.payload;
+    });
+
+    // Listen for Claude stream completion
+    unlistenClaudeDone = await listen('claude-stream-done', (event) => {
+      console.log('Claude streaming completed, full response:', event.payload);
     });
 
     Utils.getCoordinates(city);
@@ -182,16 +194,40 @@
   }
 
   async function askClaude(userMsg) {
-  try {
-    const response = await invoke('ask_claude', {
-      prompt: userMsg
-    });
-    streamedGreeting += response;
-    console.log(response);
-  } catch (error) {
-    console.error(error);
+    try {
+      isStreaming = true;
+      
+      // Clear previous response
+      streamedGreeting = "";
+      
+      // Add the user's message to the conversation history
+      streamedGreeting += `<h2 class="userMsg"> <span>${userMsg}</span>` + 
+      `${theThumbnail != "" ? `<img src="${theThumbnail}" alt="User uploaded image">` : ""}
+      </h2>`;
+      
+      // Set up the messages array
+      const messages = [];
+      
+      // Add user message
+      messages.push({
+        role: "user",
+        content: userMsg
+      });
+      
+      console.log("Sending request to Claude API with message:", userMsg);
+      
+      // Call the stream_claude Rust function
+      await invoke('stream_claude', {
+        prompt: userMsg
+      });
+      
+      isStreaming = false;
+    } catch (error) {
+      streamedGreeting = `Error: ${error}`;
+      isStreaming = false;
+      console.error("Error calling Claude API:", error);
+    }
   }
-}
 
   async function askPerplexity(userMsg) {
     try {
@@ -215,10 +251,13 @@
 
       // Create the request body as a JSON object
       const requestBody = {
-        model: "sonar",
+        model: "sonar-pro",
         messages: messages,
         multimodal: multimodal
       };
+
+      console.log("Perplexity API request body:", JSON.stringify(requestBody, null, 2));
+      console.log("Perplexity API messages:", messages);
 
       // Use streaming if available
       isStreaming = true;

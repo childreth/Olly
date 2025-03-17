@@ -28,7 +28,7 @@ fn main() {
     dotenvy::dotenv().ok();
     
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet, ask_claude, get_env, ask_perplexity, stream_perplexity])
+        .invoke_handler(tauri::generate_handler![greet, ask_claude, stream_claude, ask_perplexity, stream_perplexity, get_env])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -43,6 +43,8 @@ struct ClaudeRequest {
     messages: Vec<Message>,
     max_tokens: u32,
     temperature: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stream: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -51,13 +53,30 @@ struct Message {
     content: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct ClaudeResponse {
     content: Vec<Content>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Content {
+    text: String,
+}
+
+// Claude streaming response structures
+#[derive(Deserialize, Debug)]
+struct ClaudeStreamResponse {
+    #[serde(default)]
+    delta: ClaudeDelta,
+    #[serde(default)]
+    content: Vec<Content>,
+    #[serde(rename = "type")]
+    response_type: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+struct ClaudeDelta {
+    #[serde(default)]
     text: String,
 }
 
@@ -122,6 +141,7 @@ async fn ask_claude(prompt: String) -> Result<String, String> {
         }],
         max_tokens: 1024,
         temperature: 0.0,
+        stream: None,
     };
 
     info!("Sending request to Claude API...");
@@ -169,6 +189,145 @@ async fn ask_claude(prompt: String) -> Result<String, String> {
 
     info!("Returning response from Claude");
     Ok(claude_response.content[0].text.clone())
+}
+
+#[tauri::command]
+async fn stream_claude(window: tauri::Window, prompt: String) -> Result<(), String> {
+    info!("Starting stream_claude with prompt: {}", prompt);
+    
+    let client = reqwest::Client::new();
+    
+    // Load API key from environment or config file
+    let api_key = load_api_key()?;
+    info!("Successfully loaded API key");
+    
+    let request = ClaudeRequest {
+        model: "claude-3-7-sonnet-20250219".to_string(),
+        messages: vec![Message {
+            role: "user".to_string(),
+            content: prompt,
+        }],
+        max_tokens: 1024,
+        temperature: 0.0,
+        stream: Some(true),
+    };
+
+    info!("Sending streaming request to Claude API...");
+    let response = match client
+        .post("https://api.anthropic.com/v1/messages")
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
+        .header("content-type", "application/json")
+        .json(&request)
+        .send()
+        .await {
+            Ok(resp) => {
+                if !resp.status().is_success() {
+                    let status = resp.status();
+                    let error_text = resp.text().await.unwrap_or_else(|_| "Could not read error response".to_string());
+                    error!("API request failed with status {}: {}", status, error_text);
+                    return Err(format!("API request failed: {} - {}", status, error_text));
+                }
+                info!("Received streaming response from Claude API with status: {}", resp.status());
+                resp
+            },
+            Err(e) => {
+                error!("Failed to send request to Claude API: {}", e);
+                return Err(e.to_string());
+            }
+        };
+    
+    let mut stream = response.bytes_stream();
+    let mut full_response = String::new();
+    
+    use futures_util::StreamExt;
+    
+    while let Some(item) = stream.next().await {
+        match item {
+            Ok(bytes) => {
+                let chunk = String::from_utf8_lossy(&bytes);
+                info!("Received chunk from Claude: {}", chunk);
+                
+                for line in chunk.lines() {
+                    if line.is_empty() || line == "data: [DONE]" {
+                        continue;
+                    }
+                    
+                    // Remove the "data: " prefix if present
+                    let json_str = if line.starts_with("data: ") {
+                        &line[6..]
+                    } else {
+                        line
+                    };
+                    
+                    // Skip if the JSON string is empty or obviously invalid
+                    if json_str.trim().is_empty() || !json_str.trim().starts_with('{') {
+                        error!("Skipping invalid JSON from Claude: {}", json_str);
+                        continue;
+                    }
+                    
+                    // Parse the JSON
+                    match serde_json::from_str::<ClaudeStreamResponse>(json_str) {
+                        Ok(parsed) => {
+                            if let Some(response_type) = &parsed.response_type {
+                                if response_type == "content_block_delta" {
+                                    if !parsed.delta.text.is_empty() {
+                                        let content = &parsed.delta.text;
+                                        info!("Parsed content from Claude delta: {}", content);
+                                        full_response.push_str(content);
+                                        
+                                        // Emit event to frontend
+                                        if let Err(e) = window.emit("claude-stream", content) {
+                                            error!("Failed to emit claude-stream event: {}", e);
+                                        }
+                                    }
+                                } else if response_type == "content_block_start" {
+                                    info!("Claude content block started");
+                                }
+                            } else if !parsed.content.is_empty() && !parsed.content[0].text.is_empty() {
+                                let content = &parsed.content[0].text;
+                                info!("Parsed content from Claude content array: {}", content);
+                                
+                                // Emit event to frontend
+                                if let Err(e) = window.emit("claude-stream", content) {
+                                    error!("Failed to emit claude-stream event: {}", e);
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            error!("Failed to parse JSON from Claude chunk: {} - Error: {}", json_str, e);
+                            // Try to salvage any content by looking for text pattern
+                            if let Some(content_start) = json_str.find("\"text\": \"") {
+                                if let Some(content_end) = json_str[content_start + 9..].find("\"") {
+                                    let content = &json_str[content_start + 9..content_start + 9 + content_end];
+                                    info!("Salvaged content from Claude: {}", content);
+                                    full_response.push_str(content);
+                                    
+                                    // Emit event to frontend with salvaged content
+                                    if let Err(e) = window.emit("claude-stream", content) {
+                                        error!("Failed to emit claude-stream event with salvaged content: {}", e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            Err(e) => {
+                error!("Error reading from Claude stream: {}", e);
+                return Err(format!("Error reading from stream: {}", e));
+            }
+        }
+    }
+    
+    info!("Streaming completed from Claude. Full response: {}", full_response);
+    
+    // Emit completion event with the full response
+    if let Err(e) = window.emit("claude-stream-done", full_response) {
+        error!("Failed to emit claude-stream-done event: {}", e);
+    }
+    
+    Ok(())
 }
 
 // Perplexity API
@@ -258,22 +417,26 @@ async fn ask_perplexity(api_key: String, request_body: String) -> Result<String,
 
 #[tauri::command]
 async fn stream_perplexity(window: tauri::Window, api_key: String, request_body: String) -> Result<(), String> {
-    info!("Starting stream_perplexity with request body");
-    
-    let mut request_data: serde_json::Value = serde_json::from_str(&request_body)
-        .map_err(|e| format!("Failed to parse request body: {}", e))?;
-    
-    // Add stream parameter
-    request_data["stream"] = serde_json::Value::Bool(true);
+    info!("Starting stream_perplexity with request body: {}", request_body);
     
     let client = reqwest::Client::new();
     
-    info!("Sending streaming request to Perplexity API...");
+    // Add stream: true to the request body
+    let mut request_json: serde_json::Value = serde_json::from_str(&request_body)
+        .map_err(|e| format!("Failed to parse request body: {}", e))?;
+    
+    request_json["stream"] = serde_json::Value::Bool(true);
+    
+    let stream_request_body = serde_json::to_string(&request_json)
+        .map_err(|e| format!("Failed to serialize request body: {}", e))?;
+    
+    info!("Sending streaming request to Perplexity API with body: {}", stream_request_body);
+    
     let response = match client
         .post("https://api.perplexity.ai/chat/completions")
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
-        .json(&request_data)
+        .body(stream_request_body)
         .send()
         .await {
             Ok(resp) => {
@@ -297,50 +460,79 @@ async fn stream_perplexity(window: tauri::Window, api_key: String, request_body:
     
     use futures_util::StreamExt;
     
-    while let Some(chunk_result) = stream.next().await {
-        match chunk_result {
-            Ok(chunk) => {
-                let chunk_str = String::from_utf8_lossy(&chunk);
+    while let Some(item) = stream.next().await {
+        match item {
+            Ok(bytes) => {
+                let chunk = String::from_utf8_lossy(&bytes);
+                info!("Received chunk: {}", chunk);
                 
-                // Process each line in the chunk
-                for line in chunk_str.lines() {
+                // Split by lines (each line is a separate JSON object)
+                for line in chunk.lines() {
                     if line.is_empty() || line == "data: [DONE]" {
                         continue;
                     }
                     
-                    if let Some(data) = line.strip_prefix("data: ") {
-                        match serde_json::from_str::<PerplexityStreamResponse>(data) {
-                            Ok(stream_response) => {
-                                if !stream_response.choices.is_empty() {
-                                    if let Some(content) = &stream_response.choices[0].delta.content {
-                                        full_response.push_str(content);
-                                        
-                                        // Emit event to frontend with the new content
-                                        if let Err(e) = window.emit("perplexity-stream", content) {
-                                            error!("Failed to emit perplexity-stream event: {}", e);
-                                        }
+                    // Remove the "data: " prefix if present
+                    let json_str = if line.starts_with("data: ") {
+                        &line[6..]
+                    } else {
+                        line
+                    };
+                    
+                    // Skip if the JSON string is empty or obviously invalid
+                    if json_str.trim().is_empty() || !json_str.trim().starts_with('{') {
+                        error!("Skipping invalid JSON: {}", json_str);
+                        continue;
+                    }
+                    
+                    // Parse the JSON
+                    match serde_json::from_str::<PerplexityStreamResponse>(json_str) {
+                        Ok(parsed) => {
+                            // Extract content from the first choice's delta if available
+                            if let Some(choice) = parsed.choices.first() {
+                                if let Some(content) = &choice.delta.content {
+                                    info!("Parsed content: {}", content);
+                                    full_response.push_str(content);
+                                    
+                                    // Emit event to frontend
+                                    if let Err(e) = window.emit("perplexity-stream", content) {
+                                        error!("Failed to emit perplexity-stream event: {}", e);
                                     }
                                 }
-                            },
-                            Err(e) => {
-                                error!("Failed to parse stream chunk: {}, data: {}", e, data);
+                            }
+                        },
+                        Err(e) => {
+                            error!("Failed to parse JSON from chunk: {} - Error: {}", json_str, e);
+                            // Try to salvage any content by looking for delta.content pattern
+                            if let Some(content_start) = json_str.find("\"content\": \"") {
+                                if let Some(content_end) = json_str[content_start + 12..].find("\"") {
+                                    let content = &json_str[content_start + 12..content_start + 12 + content_end];
+                                    info!("Salvaged content: {}", content);
+                                    full_response.push_str(content);
+                                    
+                                    // Emit event to frontend with salvaged content
+                                    if let Err(e) = window.emit("perplexity-stream", content) {
+                                        error!("Failed to emit perplexity-stream event with salvaged content: {}", e);
+                                    }
+                                }
                             }
                         }
                     }
                 }
             },
             Err(e) => {
-                error!("Error reading stream: {}", e);
-                return Err(format!("Error reading stream: {}", e));
+                error!("Error reading from stream: {}", e);
+                return Err(format!("Error reading from stream: {}", e));
             }
         }
     }
     
-    // Emit completion event
+    info!("Streaming completed. Full response: {}", full_response);
+    
+    // Emit completion event with the full response
     if let Err(e) = window.emit("perplexity-stream-done", full_response) {
         error!("Failed to emit perplexity-stream-done event: {}", e);
     }
     
-    info!("Perplexity streaming completed");
     Ok(())
 }
