@@ -46,7 +46,26 @@ export async function getIcon(weather) {
   })
  // let iconName = (response.message.content).replace(/[\r\n\s]/g,'')+'.svg'
  console.log('respose',response.message.content)
-  let responseObject = JSON.parse(response.message.content)
+  let responseObject;
+  try {
+    responseObject = JSON.parse(response.message.content);
+    // Validate that the JSON object has the expected structure
+    if (typeof responseObject.iconName !== 'string') {
+      throw new Error("Invalid iconName format");
+    }
+    // Whitelist validation for expected icon names
+    const validIcons = [
+      "clear_night", "cloudy_night", "clear_foggy", "foggy",
+      "clear_sunny", "mostly_sunny", "partly_sunny", "rain",
+      "snow", "thunderstorms", "windy", "sad_face"
+    ];
+    if (!validIcons.includes(responseObject.iconName)) {
+      throw new Error("iconName not in the valid list");
+    }
+  } catch (error) {
+    console.error('Failed to parse or validate JSON:', error);
+    return 'default.svg'; // Return a default icon in case of error
+  }
   console.log('responseObject: ',responseObject)
   let iconName = responseObject.iconName + '.svg'
   console.log('weather: ',weather, iconName)
