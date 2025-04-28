@@ -166,7 +166,6 @@
   }
 
   async function askClaude(userMsg) {
-<<<<<<< Updated upstream
   try {
     const response = await invoke('ask_claude', {
       prompt: userMsg
@@ -175,41 +174,6 @@
     console.log(response);
   } catch (error) {
     console.error(error);
-=======
-    try {
-      isStreaming = true;
-      
-      // Clear previous response
-      streamedGreeting = "";
-      
-      // Add the user's message to the conversation history
-      streamedGreeting += `<h2 class="userMsg"> <span>${userMsg}</span>` + 
-      `${theThumbnail ? `<img src="${theThumbnail}" alt="User uploaded image">` : ""}
-      </h2>`;
-      
-      // Set up the messages array
-      const messages = [];
-      
-      // Add user message
-      messages.push({
-        role: "user",
-        content: userMsg
-      });
-      
-      console.log("Sending request to Claude API with message:", userMsg);
-      
-      // Call the stream_claude Rust function
-      await invoke('stream_claude', {
-        prompt: userMsg
-      });
-      
-      isStreaming = false;
-    } catch (error) {
-      streamedGreeting = `Error: ${error}`;
-      isStreaming = false;
-      console.error("Error calling Claude API:", error);
-    }
->>>>>>> Stashed changes
   }
 }
 

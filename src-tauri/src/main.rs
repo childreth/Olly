@@ -1,5 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![allow(dead_code)]
 
 use log::{info, error};
 use std::path::PathBuf;
@@ -31,6 +32,7 @@ fn main() {
 // Claude API
 
 use serde::{Deserialize, Serialize};
+use futures_util::stream::StreamExt;
 
 #[derive(Serialize)]
 struct ClaudeRequest {
@@ -38,6 +40,7 @@ struct ClaudeRequest {
     messages: Vec<Message>,
     max_tokens: u32,
     temperature: f32,
+    stream: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -46,14 +49,28 @@ struct Message {
     content: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct ClaudeResponse {
     content: Vec<Content>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Content {
     text: String,
+}
+
+// Streaming response structures for Claude
+#[derive(Deserialize, Debug)]
+struct ClaudeStreamDelta {
+    text: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct ClaudeStreamResponse {
+    #[serde(rename = "response_type")]
+    response_type: Option<String>,
+    delta: ClaudeStreamDelta,
+    content: Vec<Content>,
 }
 
 fn get_config_path() -> PathBuf {
@@ -98,6 +115,7 @@ async fn ask_claude(prompt: String) -> Result<String, String> {
         }],
         max_tokens: 1024,
         temperature: 0.0,
+        stream: None,
     };
 
     info!("Sending request to Claude API...");
@@ -146,8 +164,6 @@ async fn ask_claude(prompt: String) -> Result<String, String> {
     info!("Returning response from Claude");
     Ok(claude_response.content[0].text.clone())
 }
-<<<<<<< Updated upstream
-=======
 
 #[tauri::command]
 async fn stream_claude(window: tauri::Window, prompt: String) -> Result<(), String> {
@@ -197,8 +213,6 @@ async fn stream_claude(window: tauri::Window, prompt: String) -> Result<(), Stri
     
     let mut stream = response.bytes_stream();
     let mut full_response = String::new();
-    
-    use futures_util::StreamExt;
     
     while let Some(item) = stream.next().await {
         match item {
@@ -422,8 +436,6 @@ async fn stream_perplexity(window: tauri::Window, api_key: String, request_body:
     let mut stream = response.bytes_stream();
     let mut full_response = String::new();
     
-    use futures_util::StreamExt;
-    
     while let Some(item) = stream.next().await {
         match item {
             Ok(bytes) => {
@@ -500,4 +512,3 @@ async fn stream_perplexity(window: tauri::Window, api_key: String, request_body:
     
     Ok(())
 }
->>>>>>> Stashed changes

@@ -1877,6 +1877,7 @@ dependencies = [
  "cocoa",
  "dotenvy",
  "env_logger",
+ "futures-util",
  "log",
  "objc",
  "reqwest",

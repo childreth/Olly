@@ -6,11 +6,10 @@ export async function getIcon(weather) {
   const ollama = new Ollama({ host: "http://localhost:11434" });
   
   const response = await ollama.chat({
-    model: 'smollm2:1.7b',
+    model: 'gemma3:1b',
     "options": {
     //"seed": 101,
     "temperature": 0,
-    "format": "json"
   },
     messages: [
       { role: 'system', content: `You job is to match a weather condition to an icon name in the list provided.  
@@ -28,6 +27,7 @@ export async function getIcon(weather) {
       <icon list>
       - clear_night
       - cloudy_night
+      - partly_cloudy_night
       - clear_foggy
       - foggy
       - clear_sunny
@@ -51,7 +51,8 @@ export async function getIcon(weather) {
     responseObject = JSON.parse(response.message.content);
     // Validate that the JSON object has the expected structure
     if (typeof responseObject.iconName !== 'string') {
-      throw new Error("Invalid iconName format");
+      console.warn(`Invalid iconName type, falling back to sad_face:`, responseObject.iconName);
+      return 'sad_face.svg';
     }
     // Whitelist validation for expected icon names
     const validIcons = [
@@ -60,11 +61,12 @@ export async function getIcon(weather) {
       "snow", "thunderstorms", "windy", "sad_face"
     ];
     if (!validIcons.includes(responseObject.iconName)) {
-      throw new Error("iconName not in the valid list");
+      console.warn(`iconName "${responseObject.iconName}" not valid, falling back to sad_face`);
+      responseObject.iconName = 'sad_face';
     }
   } catch (error) {
-    console.error('Failed to parse or validate JSON:', error);
-    return 'default.svg'; // Return a default icon in case of error
+    console.warn('getIcon fallback, unable to parse/validate JSON:', error);
+    return 'sad_face.svg'; // Fallback to existing icon
   }
   console.log('responseObject: ',responseObject)
   let iconName = responseObject.iconName + '.svg'
