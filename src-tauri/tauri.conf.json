@@ -32,7 +32,13 @@
         "all": true
       },
       "http":{
-            "scope":["https://rickandmortyapi.com/*"],
+            "scope":[
+              "https://rickandmortyapi.com/*",
+              "https://api.anthropic.com/*",
+              "https://api.perplexity.ai/*",
+              "https://api.weather.gov/*",
+              "https://nominatim.openstreetmap.org/*"
+            ],
             "all": true,
             "request": true
         },

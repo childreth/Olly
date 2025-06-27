@@ -24,7 +24,7 @@ fn main() {
     dotenvy::dotenv().ok();
     
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet, ask_claude, get_env])
+        .invoke_handler(tauri::generate_handler![greet, ask_claude, stream_claude, get_env])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -40,6 +40,7 @@ struct ClaudeRequest {
     messages: Vec<Message>,
     max_tokens: u32,
     temperature: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,
 }
 
@@ -61,16 +62,29 @@ struct Content {
 
 // Streaming response structures for Claude
 #[derive(Deserialize, Debug)]
-struct ClaudeStreamDelta {
-    text: String,
+#[serde(tag = "type")]
+enum ClaudeStreamEvent {
+    #[serde(rename = "message_start")]
+    MessageStart { message: serde_json::Value },
+    #[serde(rename = "content_block_start")]
+    ContentBlockStart { index: u32, content_block: serde_json::Value },
+    #[serde(rename = "content_block_delta")]
+    ContentBlockDelta { index: u32, delta: ClaudeStreamDelta },
+    #[serde(rename = "content_block_stop")]
+    ContentBlockStop { index: u32 },
+    #[serde(rename = "message_delta")]
+    MessageDelta { delta: serde_json::Value, usage: serde_json::Value },
+    #[serde(rename = "message_stop")]
+    MessageStop,
+    #[serde(rename = "ping")]
+    Ping,
 }
 
 #[derive(Deserialize, Debug)]
-struct ClaudeStreamResponse {
-    #[serde(rename = "response_type")]
-    response_type: Option<String>,
-    delta: ClaudeStreamDelta,
-    content: Vec<Content>,
+struct ClaudeStreamDelta {
+    #[serde(rename = "type")]
+    delta_type: String,
+    text: String,
 }
 
 fn get_config_path() -> PathBuf {
@@ -213,6 +227,7 @@ async fn stream_claude(window: tauri::Window, prompt: String) -> Result<(), Stri
     
     let mut stream = response.bytes_stream();
     let mut full_response = String::new();
+    let mut buffer = String::new();
     
     while let Some(item) = stream.next().await {
         match item {
@@ -220,7 +235,14 @@ async fn stream_claude(window: tauri::Window, prompt: String) -> Result<(), Stri
                 let chunk = String::from_utf8_lossy(&bytes);
                 info!("Received chunk from Claude: {}", chunk);
                 
-                for line in chunk.lines() {
+                // Add chunk to buffer to handle split JSON objects
+                buffer.push_str(&chunk);
+                
+                // Process complete lines from buffer
+                while let Some(line_end) = buffer.find('\n') {
+                    let line = buffer[..line_end].to_string();
+                    buffer = buffer[line_end + 1..].to_string();
+                    
                     if line.is_empty() || line == "data: [DONE]" {
                         continue;
                     }
@@ -229,7 +251,7 @@ async fn stream_claude(window: tauri::Window, prompt: String) -> Result<(), Stri
                     let json_str = if line.starts_with("data: ") {
                         &line[6..]
                     } else {
-                        line
+                        &line
                     };
                     
                     // Skip if line is an event message or empty/invalid JSON
@@ -245,12 +267,12 @@ async fn stream_claude(window: tauri::Window, prompt: String) -> Result<(), Stri
                     }
                     
                     // Parse the JSON
-                    match serde_json::from_str::<ClaudeStreamResponse>(json_str) {
-                        Ok(parsed) => {
-                            if let Some(response_type) = &parsed.response_type {
-                                if response_type == "content_block_delta" {
-                                    if !parsed.delta.text.is_empty() {
-                                        let content = &parsed.delta.text;
+                    match serde_json::from_str::<ClaudeStreamEvent>(json_str) {
+                        Ok(event) => {
+                            match event {
+                                ClaudeStreamEvent::ContentBlockDelta { delta, .. } => {
+                                    if !delta.text.is_empty() {
+                                        let content = &delta.text;
                                         info!("Parsed content from Claude delta: {}", content);
                                         full_response.push_str(content);
                                         
@@ -259,16 +281,24 @@ async fn stream_claude(window: tauri::Window, prompt: String) -> Result<(), Stri
                                             error!("Failed to emit claude-stream event: {}", e);
                                         }
                                     }
-                                } else if response_type == "content_block_start" {
+                                }
+                                ClaudeStreamEvent::MessageStart { .. } => {
+                                    info!("Claude message started");
+                                }
+                                ClaudeStreamEvent::ContentBlockStart { .. } => {
                                     info!("Claude content block started");
                                 }
-                            } else if !parsed.content.is_empty() && !parsed.content[0].text.is_empty() {
-                                let content = &parsed.content[0].text;
-                                info!("Parsed content from Claude content array: {}", content);
-                                
-                                // Emit event to frontend
-                                if let Err(e) = window.emit("claude-stream", content) {
-                                    error!("Failed to emit claude-stream event: {}", e);
+                                ClaudeStreamEvent::ContentBlockStop { .. } => {
+                                    info!("Claude content block stopped");
+                                }
+                                ClaudeStreamEvent::MessageStop => {
+                                    info!("Claude message stopped");
+                                }
+                                ClaudeStreamEvent::MessageDelta { .. } => {
+                                    info!("Claude message delta received");
+                                }
+                                ClaudeStreamEvent::Ping => {
+                                    info!("Claude ping received");
                                 }
                             }
                         },
@@ -294,6 +324,52 @@ async fn stream_claude(window: tauri::Window, prompt: String) -> Result<(), Stri
             Err(e) => {
                 error!("Error reading from Claude stream: {}", e);
                 return Err(format!("Error reading from stream: {}", e));
+            }
+        }
+    }
+    
+    // Process any remaining content in buffer
+    if !buffer.trim().is_empty() {
+        info!("Processing remaining buffer content: {}", buffer);
+        
+        for line in buffer.lines() {
+            if line.is_empty() || line == "data: [DONE]" {
+                continue;
+            }
+            
+            let json_str = if line.starts_with("data: ") {
+                &line[6..]
+            } else {
+                line
+            };
+            
+            if line.starts_with("event:") || json_str.trim().is_empty() || !json_str.trim().starts_with('{') {
+                continue;
+            }
+            
+            match serde_json::from_str::<ClaudeStreamEvent>(json_str) {
+                Ok(event) => {
+                    if let ClaudeStreamEvent::ContentBlockDelta { delta, .. } = event {
+                        if !delta.text.is_empty() {
+                            full_response.push_str(&delta.text);
+                            if let Err(e) = window.emit("claude-stream", &delta.text) {
+                                error!("Failed to emit claude-stream event from buffer: {}", e);
+                            }
+                        }
+                    }
+                },
+                Err(_) => {
+                    // Try salvage operation for remaining buffer
+                    if let Some(content_start) = json_str.find("\"text\": \"") {
+                        if let Some(content_end) = json_str[content_start + 9..].find("\"") {
+                            let content = &json_str[content_start + 9..content_start + 9 + content_end];
+                            full_response.push_str(content);
+                            if let Err(e) = window.emit("claude-stream", content) {
+                                error!("Failed to emit salvaged content from buffer: {}", e);
+                            }
+                        }
+                    }
+                }
             }
         }
     }

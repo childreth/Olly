@@ -118,6 +118,20 @@
     // document
     //   .getElementById("titlebar-close")
     //   .addEventListener("click", () => appWindow.close());
+    
+    // Claude streaming event listeners
+    appWindow.listen('claude-stream', (event) => {
+      const content = event.payload;
+      streamedGreeting += content;
+      lastChatResponse += content;
+    });
+    
+    appWindow.listen('claude-stream-done', (event) => {
+      console.log("Claude streaming completed");
+      isStreaming = false;
+      Utils.addCopyButtonToPre();
+    });
+    
     //callOllama()
   });
 
@@ -167,13 +181,14 @@
 
   async function askClaude(userMsg) {
   try {
-    const response = await invoke('ask_claude', {
+    isStreaming = true;
+    lastChatResponse = "";
+    await invoke('stream_claude', {
       prompt: userMsg
     });
-    streamedGreeting += response;
-    console.log(response);
   } catch (error) {
     console.error(error);
+    isStreaming = false;
   }
 }
 
