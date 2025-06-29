@@ -36,6 +36,7 @@
               "https://rickandmortyapi.com/*",
               "https://api.anthropic.com/*",
               "https://api.perplexity.ai/*",
+              "https://api.openai.com/*",
               "https://api.weather.gov/*",
               "https://nominatim.openstreetmap.org/*"
             ],

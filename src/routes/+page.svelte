@@ -1,5 +1,6 @@
 <script>
   import { invoke } from "@tauri-apps/api/tauri";
+  import { listen } from "@tauri-apps/api/event";
   import { Ollama } from "ollama/browser";
   import { onMount } from "svelte";
   import { marked } from "marked";
@@ -9,6 +10,8 @@
   import Select from "$lib/components/select.svelte";
   import ColorPicker from "$lib/components/colorPicker.svelte";
   import Toggle from "$lib/components/darkModeToggle.svelte";
+  import SettingsModal from "$lib/components/settingsModal.svelte";
+  import Toast from "$lib/components/toast.svelte";
   import { appWindow } from "@tauri-apps/api/window";
 
   import { open } from "@tauri-apps/api/dialog";
@@ -42,12 +45,25 @@
 
   let darkMode = false;
   let themeColor = "#000099"; // default color
+  let showSettings = false;
+  
+  // Toast notification state
+  let toastVisible = false;
+  let toastMessage = "";
+  let toastType = "info";
 
 //very basic system prompt to test speed vs terimal interface
   const systemMsg = `You are a somewhat helpful assistant and like really responsing with emojies. You job will be to help write better content for the user.`;
 
   
   onMount(async () => {
+    // Listen for API key migration events
+    const unsubscribe = await listen("api-keys-migrated", (event) => {
+      toastMessage = event.payload;
+      toastType = "success";
+      toastVisible = true;
+    });
+    
     const savedColor = localStorage.getItem('themeColor');
     if (savedColor) {
       themeColor = savedColor;
@@ -373,6 +389,7 @@
         <Select id='typeface' small={true} />
         <Toggle  id="darkModeToggle"  />
         <ColorPicker color={themeColor} on:colorChange={handleColorChange} />
+        <Button label="API Settings" on:click={() => showSettings = true} />
       </p>
       <h4>Manage models</h4>
     <ul>
@@ -468,6 +485,9 @@
     </p>
   </div>
 </main>
+
+<SettingsModal bind:isOpen={showSettings} />
+<Toast bind:visible={toastVisible} message={toastMessage} type={toastType} />
 
 <style lang="">
   @import "./styles.css";

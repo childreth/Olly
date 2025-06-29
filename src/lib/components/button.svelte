@@ -3,11 +3,21 @@
   export let label = "default";
   export let type = "default";
   export let icon;
+  export let disabled = false;
+  
+  import { createEventDispatcher } from 'svelte';
+  const dispatch = createEventDispatcher();
+  
+  function handleClick() {
+    if (!disabled) {
+      dispatch('click');
+    }
+  }
 </script>
 
 <!-- markup (zero or more items) goes here -->
 <div id="buttonWrap" class="{type}">
-  <button>{label}</button>
+  <button on:click={handleClick} {disabled}>{label}</button>
   <!-- {#if icon}
     <img src="$lib/images/{icon}.svg" alt="{icon} icon">
   {/if} -->
@@ -93,8 +103,13 @@
     outline: none;
   }
 
-  #buttonWrap:hover button {
+  #buttonWrap:hover button:not(:disabled) {
     background-position: 0.75rem 40%;
+  }
+  
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
 
