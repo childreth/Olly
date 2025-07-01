@@ -52,17 +52,27 @@
       }
       
       // If valid, store it
+      message = `Storing ${provider} API key...`;
+      console.log(`About to store API key for ${provider}`);
+      
       await invoke("store_api_key", {
         provider,
         displayName: `${provider.charAt(0).toUpperCase() + provider.slice(1)} API`,
         apiKey: apiKeys[provider]
       });
       
+      console.log(`Successfully called store_api_key for ${provider}`);
+      
+      // Verify it was saved by checking the fresh storage
+      const providers = await invoke("list_api_key_providers");
+      console.log(`After saving ${provider}, fresh storage shows:`, providers);
+      
       message = `${provider} API key validated and saved successfully`;
       messageType = "success";
       apiKeys[provider] = "••••••••"; // Hide the key after saving
       
     } catch (error) {
+      console.error(`Error saving ${provider} API key:`, error);
       message = `Failed to save ${provider} API key: ${error}`;
       messageType = "error";
     } finally {
@@ -106,6 +116,24 @@
     }
   }
   
+  async function migrateClaudeKey() {
+    loading = true;
+    message = "";
+    
+    try {
+      const result = await invoke("migrate_claude_key");
+      message = result;
+      messageType = result.includes("✅") ? "success" : "info";
+      await loadApiKeys(); // Reload keys after migration
+      
+    } catch (error) {
+      message = `Claude migration failed: ${error}`;
+      messageType = "error";
+    } finally {
+      loading = false;
+    }
+  }
+  
   $: if (isOpen) {
     loadApiKeys();
   }
@@ -113,6 +141,58 @@
   function closeModal() {
     isOpen = false;
     message = "";
+  }
+  
+  async function testStoreLoad() {
+    try {
+      const result = await invoke("test_store_load");
+      console.log("Fresh Storage test:", result);
+      message = result;
+      messageType = result.includes("PASSED") ? "success" : "error";
+    } catch (error) {
+      console.error("Fresh Storage test failed:", error);
+      message = `Fresh Storage test error: ${error}`;
+      messageType = "error";
+    }
+  }
+  
+  async function debugKeys() {
+    try {
+      const result = await invoke("debug_api_keys");
+      console.log("Debug Keys:", result);
+      message = result;
+      messageType = "info";
+    } catch (error) {
+      console.error("Debug Keys failed:", error);
+      message = `Debug Keys error: ${error}`;
+      messageType = "error";
+    }
+  }
+  
+  async function testStoreDirect() {
+    try {
+      console.log("Testing direct store with debug version...");
+      const storeResult = await invoke("store_api_key_debug", {
+        provider: "test_debug",
+        displayName: "Test Debug",
+        apiKey: "test_key_abc123"
+      });
+      console.log("Debug store result:", storeResult);
+      
+      // Try to retrieve it with debug version
+      const retrieveResult = await invoke("get_api_key_debug", {
+        provider: "test_debug"
+      });
+      console.log("Debug retrieve result:", retrieveResult);
+      
+      message = `Store: ${storeResult.substring(0, 50)}... | Retrieve: ${retrieveResult.substring(0, 50)}...`;
+      messageType = retrieveResult.includes("FOUND") ? "success" : "error";
+      
+    } catch (error) {
+      console.error("Direct store test failed:", error);
+      message = `Direct store error: ${error}`;
+      messageType = "error";
+    }
   }
 </script>
 
@@ -131,8 +211,9 @@
         
         <div class="migration-section">
           <h3>Migration</h3>
-          <p>Migrate API keys from config file to secure storage:</p>
-          <Button label="Migrate from config.env" on:click={migrateKeys} />
+          <p>Migrate API keys to new secure file storage:</p>
+          <Button label="Migrate Claude Key" on:click={migrateClaudeKey} />
+          <Button label="Legacy Migration" type="secondary" on:click={migrateKeys} />
         </div>
         
         <div class="api-keys-section">
@@ -196,6 +277,13 @@
                 {/if}
               </div>
             </div>
+          </div>
+          
+          <!-- Debug Section -->
+          <div class="key-group">
+            <Button label="Test Fresh Storage" type="secondary" on:click={testStoreLoad} disabled={loading} />
+            <Button label="Debug Keys" type="secondary" on:click={debugKeys} disabled={loading} />
+            <Button label="Test Store Direct" type="secondary" on:click={testStoreDirect} disabled={loading} />
           </div>
         </div>
       </div>

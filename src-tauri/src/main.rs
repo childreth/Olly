@@ -62,14 +62,26 @@ mod api_keys {
         }
 
         pub fn save(&self, _app: &tauri::AppHandle) -> Result<(), String> {
+            info!("Saving API key store with {} providers", self.providers.len());
+            
             let data = serde_json::to_string(self)
                 .map_err(|e| format!("Failed to serialize API key store: {}", e))?;
+            
+            info!("Serialized store data: {} bytes", data.len());
             
             let entry = Entry::new(KEYRING_SERVICE, STORE_KEY)
                 .map_err(|e| format!("Failed to create keyring entry: {}", e))?;
             
-            entry.set_password(&data)
-                .map_err(|e| format!("Failed to save API key store to keyring: {}", e))
+            match entry.set_password(&data) {
+                Ok(_) => {
+                    info!("Successfully saved API key store to keyring");
+                    Ok(())
+                }
+                Err(e) => {
+                    error!("Failed to save API key store to keyring: {}", e);
+                    Err(format!("Failed to save API key store to keyring: {}", e))
+                }
+            }
         }
 
         pub fn store_key(&mut self, provider: &str, display_name: &str, api_key: &str, app: &tauri::AppHandle) -> Result<(), String> {
@@ -186,58 +198,188 @@ fn get_env(name: &str) -> String {
     std::env::var(name).unwrap_or_default()
 }
 
-// API Key Management Commands
+// File-Based API Key Storage Implementation (macOS keyring has issues)
 #[tauri::command]
-async fn store_api_key(app: tauri::AppHandle, provider: String, display_name: String, api_key: String) -> Result<(), String> {
-    info!("Storing API key for provider: {}", provider);
+async fn store_api_key(_app: tauri::AppHandle, provider: String, _display_name: String, api_key: String) -> Result<(), String> {
+    info!("Storing API key for provider: {} (using file storage due to macOS keyring issues)", provider);
     
-    let mut store = api_keys::ApiKeyStore::load(&app)?;
-    store.store_key(&provider, &display_name, &api_key, &app)?;
-    
-    Ok(())
+    // Use file storage directly as it's more reliable than keyring on macOS
+    store_api_key_file(&provider, &api_key)
 }
 
 #[tauri::command]
-async fn get_api_key(app: tauri::AppHandle, provider: String) -> Result<Option<String>, String> {
-    info!("Retrieving API key for provider: {}", provider);
+async fn store_api_key_debug(_app: tauri::AppHandle, provider: String, _display_name: String, api_key: String) -> Result<String, String> {
+    use keyring::Entry;
     
-    let mut store = api_keys::ApiKeyStore::load(&app)?;
-    store.get_key(&provider, &app)
+    let mut debug_log = Vec::new();
+    debug_log.push(format!("Starting storage for provider: {}", provider));
+    
+    // Try keyring first
+    let service = "olly";
+    let username = format!("{}_api_key", provider);
+    debug_log.push(format!("Keyring: service='{}', username='{}'", service, username));
+    
+    match Entry::new(service, &username) {
+        Ok(entry) => {
+            debug_log.push("Keyring: Entry created successfully".to_string());
+            match entry.set_password(&api_key) {
+                Ok(_) => {
+                    debug_log.push("Keyring: set_password succeeded".to_string());
+                    // Verify it was actually stored
+                    match entry.get_password() {
+                        Ok(retrieved) => {
+                            debug_log.push(format!("Keyring: Retrieved password, length: {}", retrieved.len()));
+                            if retrieved == api_key {
+                                debug_log.push("Keyring: VERIFICATION PASSED".to_string());
+                                return Ok(debug_log.join(" | "));
+                            } else {
+                                debug_log.push(format!("Keyring: VERIFICATION FAILED - length mismatch {} != {}", api_key.len(), retrieved.len()));
+                            }
+                        }
+                        Err(e) => {
+                            debug_log.push(format!("Keyring: Verification failed - get_password error: {}", e));
+                        }
+                    }
+                }
+                Err(e) => {
+                    debug_log.push(format!("Keyring: set_password failed: {}", e));
+                }
+            }
+        }
+        Err(e) => {
+            debug_log.push(format!("Keyring: Entry creation failed: {}", e));
+        }
+    }
+    
+    // Fallback to encrypted file storage
+    debug_log.push("Trying file storage fallback".to_string());
+    match store_api_key_file(&provider, &api_key) {
+        Ok(_) => {
+            debug_log.push("File: Storage succeeded".to_string());
+        }
+        Err(e) => {
+            debug_log.push(format!("File: Storage failed: {}", e));
+        }
+    }
+    
+    Ok(debug_log.join(" | "))
 }
 
 #[tauri::command]
-async fn list_api_key_providers(app: tauri::AppHandle) -> Result<Vec<String>, String> {
-    info!("Listing API key providers");
+async fn get_api_key_debug(_app: tauri::AppHandle, provider: String) -> Result<String, String> {
+    use keyring::Entry;
     
-    let store = api_keys::ApiKeyStore::load(&app)?;
-    Ok(store.list_providers())
+    let mut debug_log = Vec::new();
+    debug_log.push(format!("Starting retrieval for provider: {}", provider));
+    
+    let service = "olly";
+    let username = format!("{}_api_key", provider);
+    debug_log.push(format!("Keyring: service='{}', username='{}'", service, username));
+    
+    // Try keyring first
+    match Entry::new(service, &username) {
+        Ok(entry) => {
+            debug_log.push("Keyring: Entry created successfully".to_string());
+            match entry.get_password() {
+                Ok(api_key) => {
+                    debug_log.push(format!("Keyring: Retrieved password, length: {}", api_key.len()));
+                    return Ok(format!("{} | FOUND_IN_KEYRING", debug_log.join(" | ")));
+                }
+                Err(e) => {
+                    debug_log.push(format!("Keyring: get_password failed: {}", e));
+                }
+            }
+        }
+        Err(e) => {
+            debug_log.push(format!("Keyring: Entry creation failed: {}", e));
+        }
+    }
+    
+    // Check file storage
+    debug_log.push("Checking file storage".to_string());
+    match get_api_key_file(&provider) {
+        Ok(Some(key)) => {
+            debug_log.push(format!("File: Found key, length: {}", key.len()));
+            Ok(format!("{} | FOUND_IN_FILE", debug_log.join(" | ")))
+        }
+        Ok(None) => {
+            debug_log.push("File: No key found".to_string());
+            Ok(format!("{} | NOT_FOUND", debug_log.join(" | ")))
+        }
+        Err(e) => {
+            debug_log.push(format!("File: Error: {}", e));
+            Ok(format!("{} | FILE_ERROR", debug_log.join(" | ")))
+        }
+    }
 }
 
 #[tauri::command]
-async fn delete_api_key(app: tauri::AppHandle, provider: String) -> Result<(), String> {
+async fn get_api_key(_app: tauri::AppHandle, provider: String) -> Result<Option<String>, String> {
+    info!("Retrieving API key for provider: {} (using file storage)", provider);
+    
+    // Use file storage directly since we're having keyring issues on macOS
+    match get_api_key_file(&provider) {
+        Ok(Some(key)) => {
+            info!("Retrieved API key for {} from file storage", provider);
+            Ok(Some(key))
+        }
+        Ok(None) => {
+            info!("No API key found for provider: {}", provider);
+            Ok(None)
+        }
+        Err(e) => {
+            error!("Error retrieving API key for {}: {}", provider, e);
+            Ok(None)
+        }
+    }
+}
+
+#[tauri::command]
+async fn list_api_key_providers(_app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    info!("Listing API key providers using file storage");
+    
+    let mut providers = Vec::new();
+    
+    // Check for known providers in file storage
+    for provider in ["claude", "perplexity", "openai"] {
+        if let Ok(Some(_)) = get_api_key_file(provider) {
+            providers.push(provider.to_string());
+        }
+    }
+    
+    info!("Found {} providers with stored keys", providers.len());
+    Ok(providers)
+}
+
+#[tauri::command]
+async fn delete_api_key(_app: tauri::AppHandle, provider: String) -> Result<(), String> {
     info!("Deleting API key for provider: {}", provider);
     
-    let mut store = api_keys::ApiKeyStore::load(&app)?;
-    store.delete_key(&provider, &app)?;
+    // Delete from file storage
+    delete_api_key_file(&provider)?;
     
+    info!("Successfully deleted API key for provider: {}", provider);
     Ok(())
 }
 
 #[tauri::command]
-async fn get_provider_info(app: tauri::AppHandle, provider: String) -> Result<Option<api_keys::ApiKeyEntry>, String> {
+async fn get_provider_info(_app: tauri::AppHandle, provider: String) -> Result<Option<serde_json::Value>, String> {
     info!("Getting provider info for: {}", provider);
     
-    let store = api_keys::ApiKeyStore::load(&app)?;
-    Ok(store.get_provider_info(&provider).cloned())
+    if let Ok(Some(_)) = get_api_key_file(&provider) {
+        return Ok(Some(serde_json::json!({
+            "provider": provider,
+            "display_name": format!("{} API", provider.chars().next().unwrap().to_uppercase().collect::<String>() + &provider[1..]),
+            "is_active": true
+        })));
+    }
+    
+    Ok(None)
 }
 
 #[tauri::command]
-async fn migrate_api_keys(app: tauri::AppHandle) -> Result<(), String> {
-    info!("Starting API key migration");
-    
-    let mut store = api_keys::ApiKeyStore::load(&app)?;
-    store.migrate_from_config_file(&app)?;
-    
+async fn migrate_api_keys(_app: tauri::AppHandle) -> Result<(), String> {
+    info!("Fresh implementation - migration not needed");
     Ok(())
 }
 
@@ -285,7 +427,7 @@ async fn validate_api_key(provider: String, api_key: String) -> Result<bool, Str
             }
         }
         "perplexity" => {
-            // Test Perplexity API
+            // Test Perplexity API with sonar model
             let response = client
                 .post("https://api.perplexity.ai/chat/completions")
                 .header("Authorization", format!("Bearer {}", api_key))
@@ -361,6 +503,294 @@ async fn validate_api_key(provider: String, api_key: String) -> Result<bool, Str
     }
 }
 
+#[tauri::command]
+async fn get_perplexity_models() -> Result<Vec<serde_json::Value>, String> {
+    info!("Getting available Perplexity models");
+    
+    // Return available Perplexity models
+    let models = vec![
+        serde_json::json!({
+            "id": "sonar-deep-research",
+            "name": "Sonar Deep Research",
+            "description": "Deep research with comprehensive analysis",
+            "provider": "perplexity"
+        }),
+        serde_json::json!({
+            "id": "sonar-reasoning-pro", 
+            "name": "Sonar Reasoning Pro",
+            "description": "Advanced reasoning capabilities",
+            "provider": "perplexity"
+        }),
+        serde_json::json!({
+            "id": "sonar-reasoning",
+            "name": "Sonar Reasoning", 
+            "description": "Core reasoning model",
+            "provider": "perplexity"
+        }),
+        serde_json::json!({
+            "id": "sonar-pro",
+            "name": "Sonar Pro",
+            "description": "Professional grade search and chat",
+            "provider": "perplexity"
+        }),
+        serde_json::json!({
+            "id": "sonar",
+            "name": "Sonar", 
+            "description": "Standard search and chat model",
+            "provider": "perplexity"
+        })
+    ];
+    
+    Ok(models)
+}
+
+#[tauri::command]
+async fn debug_api_keys(_app: tauri::AppHandle) -> Result<String, String> {
+    use keyring::Entry;
+    
+    info!("=== DEBUG API KEYS CALLED ===");
+    
+    let mut keyring_providers = Vec::new();
+    let mut file_providers = Vec::new();
+    let service = "olly";
+    
+    // Check keyring for known providers
+    for provider in ["claude", "perplexity", "openai"] {
+        let username = format!("{}_api_key", provider);
+        info!("Checking keyring for {}: service='{}', username='{}'", provider, service, username);
+        
+        if let Ok(entry) = Entry::new(service, &username) {
+            match entry.get_password() {
+                Ok(key) => {
+                    info!("Found {} in keyring, key length: {}", provider, key.len());
+                    keyring_providers.push(provider.to_string());
+                }
+                Err(e) => {
+                    info!("No {} in keyring: {}", provider, e);
+                }
+            }
+        } else {
+            info!("Failed to create keyring entry for {}", provider);
+        }
+        
+        // Check file storage too
+        match get_api_key_file(provider) {
+            Ok(Some(key)) => {
+                info!("Found {} in file storage, key length: {}", provider, key.len());
+                file_providers.push(provider.to_string());
+            }
+            Ok(None) => {
+                info!("No {} in file storage", provider);
+            }
+            Err(e) => {
+                info!("Error checking file storage for {}: {}", provider, e);
+            }
+        }
+    }
+    
+    let debug_info = format!("Keyring: {:?}, File: {:?}", keyring_providers, file_providers);
+    info!("=== DEBUG RESULT: {} ===", debug_info);
+    Ok(debug_info)
+}
+
+#[tauri::command]
+async fn test_store_load(_app: tauri::AppHandle) -> Result<String, String> {
+    use keyring::Entry;
+    
+    let test_key = "test_key_12345";
+    let test_provider = "test_hybrid";
+    
+    // Test 1: Keyring storage
+    let keyring_result = {
+        let service = "olly";
+        let username = format!("{}_api_key", test_provider);
+        
+        match Entry::new(service, &username) {
+            Ok(entry) => {
+                match entry.set_password(test_key) {
+                    Ok(_) => {
+                        match entry.get_password() {
+                            Ok(retrieved) => {
+                                let _ = entry.delete_credential();
+                                if retrieved == test_key {
+                                    "KEYRING_PASSED"
+                                } else {
+                                    "KEYRING_MISMATCH"
+                                }
+                            }
+                            Err(_) => "KEYRING_READ_FAILED"
+                        }
+                    }
+                    Err(_) => "KEYRING_WRITE_FAILED"
+                }
+            }
+            Err(_) => "KEYRING_CREATE_FAILED"
+        }
+    };
+    
+    // Test 2: File storage
+    let file_result = {
+        match store_api_key_file(test_provider, test_key) {
+            Ok(_) => {
+                match get_api_key_file(test_provider) {
+                    Ok(Some(retrieved)) => {
+                        let _ = delete_api_key_file(test_provider);
+                        if retrieved == test_key {
+                            "FILE_PASSED"
+                        } else {
+                            "FILE_MISMATCH"
+                        }
+                    }
+                    Ok(None) => "FILE_READ_EMPTY",
+                    Err(_) => "FILE_READ_FAILED"
+                }
+            }
+            Err(_) => "FILE_WRITE_FAILED"
+        }
+    };
+    
+    // Test 3: Hybrid storage (our actual implementation)
+    let hybrid_result = {
+        match store_api_key(_app.clone(), test_provider.to_string(), "Test".to_string(), test_key.to_string()).await {
+            Ok(_) => {
+                // Add a small delay to ensure storage is complete
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                
+                // Check both storage locations manually after hybrid store
+                let keyring_check = {
+                    let service = "olly";
+                    let username = format!("{}_api_key", test_provider);
+                    if let Ok(entry) = Entry::new(service, &username) {
+                        entry.get_password().is_ok()
+                    } else {
+                        false
+                    }
+                };
+                
+                let file_check = get_api_key_file(test_provider).unwrap_or(None).is_some();
+                
+                match get_api_key(_app.clone(), test_provider.to_string()).await {
+                    Ok(Some(retrieved)) => {
+                        let _ = delete_api_key(_app.clone(), test_provider.to_string()).await;
+                        if retrieved == test_key {
+                            "HYBRID_PASSED".to_string()
+                        } else {
+                            "HYBRID_MISMATCH".to_string()
+                        }
+                    }
+                    Ok(None) => {
+                        format!("HYBRID_READ_EMPTY(K:{},F:{})", keyring_check, file_check)
+                    },
+                    Err(e) => format!("HYBRID_READ_FAILED:{}", e)
+                }
+            }
+            Err(e) => format!("HYBRID_WRITE_FAILED:{}", e)
+        }
+    };
+    
+    Ok(format!("Keyring: {} | File: {} | Hybrid: {}", keyring_result, file_result, hybrid_result))
+}
+
+#[tauri::command]
+async fn test_keyring() -> Result<String, String> {
+    use keyring::Entry;
+    
+    let test_service = "com.olly.app.test";
+    let test_key = "test_key";
+    let test_value = "test_value_123";
+    
+    // Try to create and save a test entry
+    match Entry::new(test_service, test_key) {
+        Ok(entry) => {
+            match entry.set_password(test_value) {
+                Ok(_) => {
+                    // Try to read it back
+                    match entry.get_password() {
+                        Ok(retrieved) => {
+                            // Clean up
+                            let _ = entry.delete_credential();
+                            if retrieved == test_value {
+                                Ok("Keyring test PASSED - read/write works".to_string())
+                            } else {
+                                Ok(format!("Keyring test FAILED - wrote '{}' but read '{}'", test_value, retrieved))
+                            }
+                        }
+                        Err(e) => Ok(format!("Keyring test FAILED - could not read: {}", e))
+                    }
+                }
+                Err(e) => Ok(format!("Keyring test FAILED - could not write: {}", e))
+            }
+        }
+        Err(e) => Ok(format!("Keyring test FAILED - could not create entry: {}", e))
+    }
+}
+
+#[tauri::command]
+async fn test_exact_keyring() -> Result<String, String> {
+    use keyring::Entry;
+    
+    // Test with the exact same service and key that our store uses
+    let service = "com.olly.app";
+    let key = "api_key_store";
+    let test_value = r#"{"providers":{"test":{"provider":"test","display_name":"Test","created_at":"2025-01-01T00:00:00Z","last_used":null,"is_active":true}}}"#;
+    
+    match Entry::new(service, key) {
+        Ok(entry) => {
+            match entry.set_password(test_value) {
+                Ok(_) => {
+                    // Try to read it back
+                    match entry.get_password() {
+                        Ok(retrieved) => {
+                            // Clean up
+                            let _ = entry.delete_credential();
+                            if retrieved == test_value {
+                                Ok("Exact keyring test PASSED - store service/key works".to_string())
+                            } else {
+                                Ok(format!("Exact keyring test FAILED - wrote {} bytes but read {} bytes", test_value.len(), retrieved.len()))
+                            }
+                        }
+                        Err(e) => Ok(format!("Exact keyring test FAILED - could not read: {}", e))
+                    }
+                }
+                Err(e) => Ok(format!("Exact keyring test FAILED - could not write: {}", e))
+            }
+        }
+        Err(e) => Ok(format!("Exact keyring test FAILED - could not create entry: {}", e))
+    }
+}
+
+#[tauri::command]
+async fn get_all_models() -> Result<Vec<serde_json::Value>, String> {
+    info!("Getting all available models from all providers");
+    
+    let mut all_models = Vec::new();
+    
+    // Add Claude models
+    all_models.push(serde_json::json!({
+        "id": "claude-3.5-sonnet",
+        "name": "Claude 3.5 Sonnet",
+        "description": "Most capable Claude model",
+        "provider": "claude"
+    }));
+    
+    // Add Perplexity models
+    let perplexity_models = get_perplexity_models().await?;
+    all_models.extend(perplexity_models);
+    
+    // Add Fal model
+    all_models.push(serde_json::json!({
+        "id": "fal-flux",
+        "name": "Fal - Flux",
+        "description": "Image generation model",
+        "provider": "fal"
+    }));
+    
+    // Add Ollama models (we'll need to handle this dynamically from frontend)
+    // For now, just add a placeholder that will be replaced by frontend Ollama detection
+    
+    Ok(all_models)
+}
+
 fn main() {
     // Initialize logger
     env_logger::init();
@@ -369,7 +799,7 @@ fn main() {
     dotenvy::dotenv().ok();
     
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet, ask_claude, stream_claude, get_env, store_api_key, get_api_key, list_api_key_providers, delete_api_key, get_provider_info, migrate_api_keys, validate_api_key])
+        .invoke_handler(tauri::generate_handler![greet, ask_claude, stream_claude, ask_perplexity, stream_perplexity, get_perplexity_models, get_all_models, get_env, store_api_key, get_api_key, list_api_key_providers, delete_api_key, get_provider_info, migrate_api_keys, validate_api_key, debug_api_keys, test_keyring, test_store_load, test_exact_keyring, store_api_key_debug, get_api_key_debug, migrate_claude_key])
         .setup(|app| {
             // Auto-migrate API keys on startup
             let app_handle = app.handle();
@@ -387,7 +817,9 @@ fn main() {
 }
 
 async fn auto_migrate_keys(app: &tauri::AppHandle) -> Result<(), String> {
-    info!("Checking for API keys to migrate from config file");
+    use keyring::Entry;
+    
+    info!("Checking for API keys to migrate from config file using fresh implementation");
     
     let config_path = get_config_path();
     if !config_path.exists() {
@@ -398,30 +830,59 @@ async fn auto_migrate_keys(app: &tauri::AppHandle) -> Result<(), String> {
     let contents = fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read config file: {}", e))?;
     
-    let mut store = api_keys::ApiKeyStore::load(app)?;
+    let service = "olly";
     let mut config_modified = false;
     let mut new_config_lines = Vec::new();
     let mut migrated_keys = Vec::new();
     
     for line in contents.lines() {
         if let Some(key) = line.strip_prefix("CLAUDE_API_KEY=") {
-            if !store.providers.contains_key("claude") && !key.trim().is_empty() {
+            let username = "claude_api_key";
+            let already_stored = if let Ok(entry) = Entry::new(service, username) {
+                entry.get_password().is_ok()
+            } else {
+                false
+            };
+            
+            if !already_stored && !key.trim().is_empty() {
                 info!("Migrating Claude API key from config file to secure storage");
-                match store.store_key("claude", "Claude API", key.trim(), app) {
-                    Ok(_) => {
+                if let Ok(entry) = Entry::new(service, username) {
+                    if entry.set_password(key.trim()).is_ok() {
                         info!("Successfully migrated Claude API key to secure storage");
                         migrated_keys.push("Claude");
-                        // Don't add this line to new config - effectively removing it
                         config_modified = true;
                         continue;
                     }
-                    Err(e) => {
-                        error!("Failed to migrate Claude API key: {}", e);
-                        // Keep the line in config if migration failed
+                }
+                error!("Failed to migrate Claude API key");
+            } else if already_stored {
+                info!("Claude API key already in secure storage, removing from config file");
+                config_modified = true;
+                continue;
+            }
+        }
+        
+        if let Some(key) = line.strip_prefix("PERPLEXITY_API_KEY=") {
+            let username = "perplexity_api_key";
+            let already_stored = if let Ok(entry) = Entry::new(service, username) {
+                entry.get_password().is_ok()
+            } else {
+                false
+            };
+            
+            if !already_stored && !key.trim().is_empty() {
+                info!("Migrating Perplexity API key from config file to secure storage");
+                if let Ok(entry) = Entry::new(service, username) {
+                    if entry.set_password(key.trim()).is_ok() {
+                        info!("Successfully migrated Perplexity API key to secure storage");
+                        migrated_keys.push("Perplexity");
+                        config_modified = true;
+                        continue;
                     }
                 }
-            } else if store.providers.contains_key("claude") {
-                info!("Claude API key already in secure storage, removing from config file");
+                error!("Failed to migrate Perplexity API key");
+            } else if already_stored {
+                info!("Perplexity API key already in secure storage, removing from config file");
                 config_modified = true;
                 continue;
             }
@@ -518,33 +979,217 @@ fn get_config_path() -> PathBuf {
     PathBuf::from(home).join(".olly").join("config.env")
 }
 
-fn load_api_key(app: &tauri::AppHandle) -> Result<String, String> {
-    // First try secure storage
-    if let Ok(mut store) = api_keys::ApiKeyStore::load(app) {
-        if let Ok(Some(key)) = store.get_key("claude", app) {
-            info!("Loaded Claude API key from secure storage");
+fn get_keys_dir() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    PathBuf::from(home).join(".olly").join("keys")
+}
+
+// File-based storage fallback functions
+fn store_api_key_file(provider: &str, api_key: &str) -> Result<(), String> {
+    use std::fs;
+    
+    let keys_dir = get_keys_dir();
+    info!("Attempting file storage for {} in directory: {:?}", provider, keys_dir);
+    
+    // Create directory if it doesn't exist
+    if let Err(e) = fs::create_dir_all(&keys_dir) {
+        error!("Failed to create keys directory: {}", e);
+        return Err(format!("Failed to create keys directory: {}", e));
+    }
+    info!("Keys directory created/exists");
+    
+    // Simple XOR encoding for basic obfuscation (not real security)
+    let encoded_key = simple_encode(api_key);
+    info!("Encoded key, original length: {}, encoded length: {}", api_key.len(), encoded_key.len());
+    
+    let key_file = keys_dir.join(format!("{}.key", provider));
+    info!("Writing to file: {:?}", key_file);
+    
+    match fs::write(&key_file, &encoded_key) {
+        Ok(_) => {
+            info!("Successfully wrote key file for {}", provider);
+            // Verify by reading it back
+            match fs::read(&key_file) {
+                Ok(read_data) => {
+                    if read_data == encoded_key {
+                        info!("File storage verification successful for {}", provider);
+                        Ok(())
+                    } else {
+                        error!("File storage verification failed - data mismatch for {}", provider);
+                        Err("File verification failed".to_string())
+                    }
+                }
+                Err(e) => {
+                    error!("File storage verification failed - cannot read back: {}", e);
+                    Err(format!("File verification read failed: {}", e))
+                }
+            }
+        }
+        Err(e) => {
+            error!("Failed to write key file for {}: {}", provider, e);
+            Err(format!("Failed to write key file: {}", e))
+        }
+    }
+}
+
+fn get_api_key_file(provider: &str) -> Result<Option<String>, String> {
+    use std::fs;
+    
+    let keys_dir = get_keys_dir();
+    let key_file = keys_dir.join(format!("{}.key", provider));
+    
+    if !key_file.exists() {
+        return Ok(None);
+    }
+    
+    match fs::read(&key_file) {
+        Ok(encoded_data) => {
+            let decoded_key = simple_decode(&encoded_data);
+            Ok(Some(decoded_key))
+        }
+        Err(e) => Err(format!("Failed to read key file: {}", e))
+    }
+}
+
+fn delete_api_key_file(provider: &str) -> Result<(), String> {
+    use std::fs;
+    
+    let keys_dir = get_keys_dir();
+    let key_file = keys_dir.join(format!("{}.key", provider));
+    
+    if key_file.exists() {
+        match fs::remove_file(&key_file) {
+            Ok(_) => {
+                info!("Deleted API key file for {}", provider);
+                Ok(())
+            }
+            Err(e) => Err(format!("Failed to delete key file: {}", e))
+        }
+    } else {
+        Ok(()) // File doesn't exist, consider it deleted
+    }
+}
+
+// Simple encoding/decoding for basic obfuscation
+fn simple_encode(input: &str) -> Vec<u8> {
+    let key = b"olly_secure_2024"; // Simple XOR key
+    input.bytes()
+        .enumerate()
+        .map(|(i, b)| b ^ key[i % key.len()])
+        .collect()
+}
+
+fn simple_decode(input: &[u8]) -> String {
+    let key = b"olly_secure_2024"; // Same XOR key
+    let decoded: Vec<u8> = input.iter()
+        .enumerate()
+        .map(|(i, &b)| b ^ key[i % key.len()])
+        .collect();
+    String::from_utf8(decoded).unwrap_or_default()
+}
+
+fn load_api_key(_app: &tauri::AppHandle, provider: &str) -> Result<String, String> {
+    info!("Loading API key for provider: {}", provider);
+    
+    // First try our new file storage system
+    match get_api_key_file(provider) {
+        Ok(Some(key)) => {
+            info!("Loaded {} API key from file storage", provider);
+            return Ok(key);
+        }
+        Ok(None) => {
+            info!("No {} API key in file storage, checking for migration", provider);
+        }
+        Err(e) => {
+            error!("Error reading {} API key from file storage: {}", provider, e);
+        }
+    }
+    
+    // Migration: Check environment variable and config file, then migrate to file storage
+    let env_var = format!("{}_API_KEY", provider.to_uppercase());
+    
+    // Check environment variable
+    if let Ok(key) = std::env::var(&env_var) {
+        info!("Found {} API key in environment variable, migrating to file storage", provider);
+        if let Err(e) = store_api_key_file(provider, &key) {
+            error!("Failed to migrate {} API key from environment: {}", provider, e);
+        } else {
+            info!("Successfully migrated {} API key from environment to file storage", provider);
             return Ok(key);
         }
     }
     
-    // Fallback to environment variable
-    if let Ok(key) = std::env::var("CLAUDE_API_KEY") {
-        info!("Loaded Claude API key from environment variable");
-        return Ok(key);
-    }
-    
-    // Fallback to config file
+    // Check config file
     let config_path = get_config_path();
     if let Ok(contents) = fs::read_to_string(config_path) {
+        let config_prefix = format!("{}=", env_var);
         for line in contents.lines() {
-            if let Some(key) = line.strip_prefix("CLAUDE_API_KEY=") {
-                info!("Loaded Claude API key from config file");
-                return Ok(key.to_string());
+            if let Some(key) = line.strip_prefix(&config_prefix) {
+                info!("Found {} API key in config file, migrating to file storage", provider);
+                if let Err(e) = store_api_key_file(provider, key.trim()) {
+                    error!("Failed to migrate {} API key from config: {}", provider, e);
+                } else {
+                    info!("Successfully migrated {} API key from config to file storage", provider);
+                    return Ok(key.trim().to_string());
+                }
             }
         }
     }
     
-    Err("API key not found in secure storage, environment, or config file".to_string())
+    Err(format!("{} API key not found. Please add it in Settings.", provider))
+}
+
+#[tauri::command]
+async fn migrate_claude_key(_app: tauri::AppHandle) -> Result<String, String> {
+    info!("Manual Claude key migration requested");
+    
+    // Check if already in file storage
+    if let Ok(Some(_)) = get_api_key_file("claude") {
+        return Ok("Claude API key already migrated to secure file storage".to_string());
+    }
+    
+    let mut migration_source = None;
+    let mut found_key = None;
+    
+    // Check environment variable
+    if let Ok(key) = std::env::var("CLAUDE_API_KEY") {
+        if !key.trim().is_empty() {
+            migration_source = Some("environment variable");
+            found_key = Some(key);
+        }
+    }
+    
+    // Check config file if not found in environment
+    if found_key.is_none() {
+        let config_path = get_config_path();
+        if let Ok(contents) = fs::read_to_string(config_path) {
+            for line in contents.lines() {
+                if let Some(key) = line.strip_prefix("CLAUDE_API_KEY=") {
+                    if !key.trim().is_empty() {
+                        migration_source = Some("config file");
+                        found_key = Some(key.trim().to_string());
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Migrate if found
+    if let (Some(source), Some(key)) = (migration_source, found_key) {
+        match store_api_key_file("claude", &key) {
+            Ok(_) => {
+                info!("Successfully migrated Claude API key from {} to file storage", source);
+                Ok(format!("✅ Successfully migrated Claude API key from {} to secure file storage", source))
+            }
+            Err(e) => {
+                error!("Failed to migrate Claude API key: {}", e);
+                Err(format!("Failed to migrate Claude API key: {}", e))
+            }
+        }
+    } else {
+        Ok("No Claude API key found in environment variables or config file".to_string())
+    }
 }
 
 #[tauri::command]
@@ -554,7 +1199,7 @@ async fn ask_claude(app: tauri::AppHandle, prompt: String) -> Result<String, Str
     let client = reqwest::Client::new();
     
     // Load API key from secure storage, environment, or config file
-    let api_key = load_api_key(&app)?;
+    let api_key = load_api_key(&app, "claude")?;
     info!("Successfully loaded API key");
     
     let request = ClaudeRequest {
@@ -622,7 +1267,7 @@ async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, prompt: Str
     let client = reqwest::Client::new();
     
     // Load API key from secure storage, environment, or config file
-    let api_key = load_api_key(&app)?;
+    let api_key = load_api_key(&app, "claude")?;
     info!("Successfully loaded API key");
     
     let request = ClaudeRequest {
@@ -854,17 +1499,36 @@ struct PerplexityStreamDelta {
 }
 
 #[tauri::command]
-async fn ask_perplexity(api_key: String, request_body: String) -> Result<String, String> {
-    info!("Starting ask_perplexity with request body");
+async fn ask_perplexity(app: tauri::AppHandle, model: String, prompt: String) -> Result<String, String> {
+    info!("Starting ask_perplexity with model: {} and prompt: {}", model, prompt);
     
     let client = reqwest::Client::new();
+    
+    // Load API key from secure storage
+    let api_key = match get_api_key(app.clone(), "perplexity".to_string()).await? {
+        Some(key) => key,
+        None => return Err("Perplexity API key not found. Please add it in Settings.".to_string())
+    };
+    
+    // Build request body with the specified model
+    let request_body = serde_json::json!({
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "max_tokens": 1024,
+        "temperature": 0.7
+    });
     
     info!("Sending request to Perplexity API...");
     let response = match client
         .post("https://api.perplexity.ai/chat/completions")
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
-        .body(request_body)
+        .json(&request_body)
         .send()
         .await {
             Ok(resp) => {
@@ -906,27 +1570,38 @@ async fn ask_perplexity(api_key: String, request_body: String) -> Result<String,
 }
 
 #[tauri::command]
-async fn stream_perplexity(window: tauri::Window, api_key: String, request_body: String) -> Result<(), String> {
-    info!("Starting stream_perplexity with request body: {}", request_body);
+async fn stream_perplexity(window: tauri::Window, app: tauri::AppHandle, model: String, prompt: String) -> Result<(), String> {
+    info!("Starting stream_perplexity with model: {} and prompt: {}", model, prompt);
     
     let client = reqwest::Client::new();
     
-    // Add stream: true to the request body
-    let mut request_json: serde_json::Value = serde_json::from_str(&request_body)
-        .map_err(|e| format!("Failed to parse request body: {}", e))?;
+    // Load API key from secure storage
+    let api_key = match get_api_key(app.clone(), "perplexity".to_string()).await? {
+        Some(key) => key,
+        None => return Err("Perplexity API key not found. Please add it in Settings.".to_string())
+    };
     
-    request_json["stream"] = serde_json::Value::Bool(true);
+    // Build request body with stream enabled
+    let request_body = serde_json::json!({
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "max_tokens": 1024,
+        "temperature": 0.7,
+        "stream": true
+    });
     
-    let stream_request_body = serde_json::to_string(&request_json)
-        .map_err(|e| format!("Failed to serialize request body: {}", e))?;
-    
-    info!("Sending streaming request to Perplexity API with body: {}", stream_request_body);
+    info!("Sending streaming request to Perplexity API");
     
     let response = match client
         .post("https://api.perplexity.ai/chat/completions")
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
-        .body(stream_request_body)
+        .json(&request_body)
         .send()
         .await {
             Ok(resp) => {

@@ -12,6 +12,7 @@
   import Toggle from "$lib/components/darkModeToggle.svelte";
   import SettingsModal from "$lib/components/settingsModal.svelte";
   import Toast from "$lib/components/toast.svelte";
+  import SearchableSelect from "$lib/components/searchableSelect.svelte";
   import { appWindow } from "@tauri-apps/api/window";
 
   import { open } from "@tauri-apps/api/dialog";
@@ -24,6 +25,7 @@
   //basic API call for testing tools
   const API_URL = "https://rickandmortyapi.com/api/episode";
   let selectedModel = "smollm2:1.7b";
+  let selectedModelOption = null;
   let activeModel = "";
   let result = "";
   let theImage= [];
@@ -39,6 +41,7 @@
   const city = "Westford,MA";
   let name = "Craig";
   let loadModelNames = [];
+  let allModels = [];
   let isStreaming = false;
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
@@ -147,6 +150,19 @@
       isStreaming = false;
       Utils.addCopyButtonToPre();
     });
+
+    // Perplexity streaming event listeners
+    appWindow.listen('perplexity-stream', (event) => {
+      const content = event.payload;
+      streamedGreeting += content;
+      lastChatResponse += content;
+    });
+    
+    appWindow.listen('perplexity-stream-done', (event) => {
+      console.log("Perplexity streaming completed");
+      isStreaming = false;
+      Utils.addCopyButtonToPre();
+    });
     
     //callOllama()
   });
@@ -196,40 +212,109 @@
   }
 
   async function askClaude(userMsg) {
-  try {
-    isStreaming = true;
-    lastChatResponse = "";
-    await invoke('stream_claude', {
-      prompt: userMsg
-    });
-  } catch (error) {
-    console.error(error);
-    isStreaming = false;
+    try {
+      isStreaming = true;
+      lastChatResponse = "";
+      await invoke('stream_claude', {
+        prompt: userMsg
+      });
+    } catch (error) {
+      console.error(error);
+      isStreaming = false;
+      
+      // Show error to user
+      if (error.includes("API key not found")) {
+        toastMessage = "Claude API key not found. Please add it in Settings → API Settings.";
+        toastType = "error";
+        toastVisible = true;
+      } else {
+        toastMessage = `Claude error: ${error}`;
+        toastType = "error";
+        toastVisible = true;
+      }
+    }
   }
-}
+
+  async function askPerplexity(userMsg) {
+    try {
+      isStreaming = true;
+      lastChatResponse = "";
+      await invoke('stream_perplexity', {
+        model: selectedModel,
+        prompt: userMsg
+      });
+    } catch (error) {
+      console.error(error);
+      isStreaming = false;
+      
+      // Show error to user
+      if (error.includes("API key not found")) {
+        toastMessage = "Perplexity API key not found. Please add it in Settings → API Settings.";
+        toastType = "error";
+        toastVisible = true;
+      } else {
+        toastMessage = `Perplexity error: ${error}`;
+        toastType = "error";
+        toastVisible = true;
+      }
+    }
+  }
 
 
 
 
   async function loadModels() {
-    const ollama = new Ollama({ host: "http://localhost:11434" });
-
-    let models = await ollama.list();
-    console.log('models',models);
-    let theModelsView = models.models;
-    console.log("theModelsView:", theModelsView);
-    loadModelNames = theModelsView.map((modelName) => {
-      return [
-      modelName.name,  
-      Utils.formatDate(modelName.modified_at),
-      modelName.details.parameter_size,
-      modelName.details.quantization_level
+    try {
+      // Get all models from backend
+      const backendModels = await invoke("get_all_models");
+      console.log('Backend models:', backendModels);
+      
+      // Get Ollama models if available
+      let ollamaModels = [];
+      try {
+        const ollama = new Ollama({ host: "http://localhost:11434" });
+        let models = await ollama.list();
+        ollamaModels = models.models.map((modelName) => ({
+          id: modelName.name,
+          name: modelName.name,
+          description: `${modelName.details.parameter_size} - ${Utils.formatDate(modelName.modified_at)}`,
+          provider: "ollama",
+          details: {
+            modified_at: modelName.modified_at,
+            parameter_size: modelName.details.parameter_size,
+            quantization_level: modelName.details.quantization_level
+          }
+        }));
         
+        // Keep old format for settings display
+        loadModelNames = models.models.map((modelName) => [
+          modelName.name,  
+          Utils.formatDate(modelName.modified_at),
+          modelName.details.parameter_size,
+          modelName.details.quantization_level
+        ]);
+      } catch (error) {
+        console.warn("Ollama not available:", error);
+        loadModelNames = [];
+      }
+      
+      // Add external API models to old format for settings
+      loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"],["Claude 3.5 Sonnet","Not local - External API","N/A","N/A"]);
+      loadModelNames.push(...backendModels.filter(m => m.provider === "perplexity").map(m => [m.name, "Not local - External API", "N/A", "N/A"]));
+      
+      // Combine all models for the searchable select
+      allModels = [...backendModels, ...ollamaModels];
+      console.log('All models combined:', allModels);
+      
+    } catch (error) {
+      console.error("Failed to load models:", error);
+      // Fallback models
+      loadModelNames = [["Fal - Flux","Not local - External API","N/A","N/A"],["Claude 3.5 Sonnet","Not local - External API","N/A","N/A"]];
+      allModels = [
+        { id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet", description: "Most capable Claude model", provider: "claude" },
+        { id: "fal-flux", name: "Fal - Flux", description: "Image generation model", provider: "fal" }
       ];
-    });
-    loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"],["Claude 3.7 Sonnet (Latest)","Not local - External API","N/A","N/A"]);
-    
-    //manually add names here
+    }
   }
 
   async function deleteModel(model) {
@@ -281,10 +366,15 @@
       };
     }
 
-    if (selectedModel === "Fal - Flux") {
+    // Determine provider from selected model
+    const provider = selectedModelOption ? selectedModelOption.provider : 'ollama';
+    
+    if (selectedModel === "fal-flux" || selectedModel === "Fal - Flux") {
       falImage();
-    } else if (selectedModel === "Claude 3.7 Sonnet (Latest)") {
+    } else if (provider === "claude") {
       askClaude(userMsg);
+    } else if (provider === "perplexity") {
+      askPerplexity(userMsg);
     } else {
       console.log("chatConvo:", chatConvo);
       isStreaming = true;
@@ -361,6 +451,13 @@
     document.querySelector("#thumbnails").innerHTML = "";
     // ollama.stop();
   }
+
+  function handleModelChange(event) {
+    const { value, option } = event.detail;
+    selectedModel = value;
+    selectedModelOption = option;
+    changeModel(); // Reset conversation when changing model
+  }
   function stopStreaming() {
     if (isStreaming) {
       abortController.abort();
@@ -420,15 +517,13 @@
   <h1>Olly</h1>
   <!-- <button class="basic" on:click={Utils.toggleTheme}>Test it</button> -->
   <div class="input-vertical">
-    <label for="pet-select" class="visualhide">Choose a model:</label>
-
-    <select bind:value={selectedModel} on:change={changeModel}>
-      {#each loadModelNames as question}
-        <option value={question[0]}>
-          {question[0]}
-        </option>
-      {/each}
-    </select>
+    <label for="model-select" class="visualhide">Choose a model:</label>
+    <SearchableSelect 
+      options={allModels}
+      bind:value={selectedModel}
+      on:change={handleModelChange}
+      placeholder="Search models..."
+    />
   </div>
 </header>
 <main>

@@ -202,7 +202,8 @@ header {
   box-sizing: border-box;
   justify-content: space-between;
   align-items: center;
-  position: sticky;
+  position: relative;
+  overflow: visible;
   top: 0;
   /* background: rgba(0,0,0,.1); */
   border-bottom: 1px solid var(--secondary);
@@ -853,3 +854,4 @@ input[type="file"] {
 .hide {
   display: none !important;
 }
+
