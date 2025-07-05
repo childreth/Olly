@@ -36,7 +36,7 @@
   button {
     
     color: var(--surface) !important;
-    background-image: url('$lib/images/arrow-up_dark.svg')!important;
+    /* background-image: url('$lib/images/arrow-up_dark.svg')!important; */
 	
   }
   button.basic {

@@ -128,15 +128,15 @@
   .searchable-select {
     position: relative;
     width: 100%;
-    max-width: 320px;
+    max-width: 224px;
   }
 
   .search-input {
     width: 100%;
     padding: 0 2.75rem 0 1.5rem;
     border: 0;
-    min-height: 2.5rem;
-    line-height: 2.5rem;
+    min-height: 2.25rem;
+    line-height: 2.25rem;
     font-size: 1rem;
     color: var(--primary);
     border: 1px solid var(--secondary);

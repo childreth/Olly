@@ -138,21 +138,19 @@
     message = "";
   }
 </script>
-<h2>Manage models</h2>
+<h2 class='text-lg'>Manage models</h2>
 <div class="tabbed-model-manager">
   <div class="tab-header">
-    <button 
-      class="tab-button {activeTab === 'local' ? 'active' : ''}"
+    <Button 
+      label="Local"
+      type="{activeTab === 'local' ? 'secondary' : 'basic'}"
       on:click={() => switchTab('local')}
-    >
-      Local
-    </button>
-    <button 
-      class="tab-button {activeTab === 'external' ? 'active' : ''}"
+    />
+    <Button 
+      label="External"
+      type="{activeTab === 'external' ? 'secondary' : 'basic'}"
       on:click={() => switchTab('external')}
-    >
-      External
-    </button>
+    />
   </div>
   
   <div class="tab-content">
@@ -171,8 +169,8 @@
           </div>
           {#each loadModelNames.filter(model => !model[1].includes('External API')) as model}
             <div class="table-row">
-              <span class="model-name">{model[0]}</span>
-              <span class="date">{model[1]}</span>
+              <span class="">{model[0]}</span>
+              <span class="">{model[1]}</span>
               <span>{model[2]}</span>
               <span>{model[3]}</span>
               <span class="actions">
@@ -202,14 +200,15 @@
                 </span>
               </div>
               <div class="provider-form">
+                
                 <div class="form-row">
                   <div class="form-field">
-                    <label for="{provider.id}-name">Provider name</label>
+                    <label for="{provider.id}-key">API key</label>
                     <input
-                      id="{provider.id}-name"
-                      type="text"
-                      value={provider.name}
-                      readonly
+                      id="{provider.id}-key"
+                      type="password"
+                      bind:value={provider.apiKey}
+                      placeholder={provider.placeholder}
                       disabled={loading}
                     />
                   </div>
@@ -231,17 +230,7 @@
                     {/if}
                   </div>
                 </div>
-                <div class="form-row">
-                  <div class="form-field">
-                    <input
-                      id="{provider.id}-key"
-                      type="password"
-                      bind:value={provider.apiKey}
-                      placeholder={provider.placeholder}
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
+           
               </div>
             </div>
           {/each}
@@ -252,6 +241,8 @@
 </div>
 
 <style>
+   @import "../../routes/forms.css";
+
   .tabbed-model-manager {
     width: 100%;
   }
@@ -323,7 +314,7 @@
   .table-row {
     display: grid;
     grid-template-columns: 2fr 1.5fr 1fr 1fr 0.5fr;
-    gap: 1rem;
+    gap:0;
     align-items: center;
     padding: 0.75rem 0;
   }
@@ -331,27 +322,26 @@
   .table-header {
     font-weight: 600;
     color: var(--textSecondary);
-    border-bottom: 1px solid var(--secondary);
-    padding-bottom: 0.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding:  0.5rem;
+    border-radius: var(--borderRadiusXS);
+    background-color: var(--surface);
+    font-size: var(--fontSizeSmall);
   }
   
   .table-row {
-    border-bottom: 1px solid var(--surfaceHover);
+
+    font-size: var(--fontSizeMedium);
+    padding:  0.5rem;
+
   }
   
   .table-row:hover {
     background-color: var(--surfaceHover);
   }
   
-  .model-name {
-    font-weight: 500;
-    color: var(--primary);
-  }
-  
-  .date {
-    color: var(--textSecondary);
-    font-size: 0.9rem;
-  }
   
   .actions {
     display: flex;
@@ -368,6 +358,9 @@
     border: 1px solid var(--secondary);
     border-radius: var(--borderRadiusS);
     padding: 1rem;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
     background-color: var(--surface);
   }
   
@@ -404,50 +397,15 @@
   
   .provider-form {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 1rem;
   }
-  
-  .form-row {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-end;
+
+  .provider-form .form-row {
+    flex: 1 0 0;
   }
+
   
-  .form-field {
-    flex: 1;
-  }
-  
-  .form-field label {
-    display: block;
-    color: var(--primary);
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-  }
-  
-  .form-field input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--secondary);
-    border-radius: var(--borderRadiusXS);
-    background-color: var(--surface);
-    color: var(--primary);
-    font-family: var(--bodyFamily);
-    box-sizing: border-box;
-  }
-  
-  .form-field input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(var(--accent), 0.2);
-  }
-  
-  .form-field input:disabled,
-  .form-field input[readonly] {
-    opacity: 0.6;
-    cursor: not-allowed;
-    background-color: var(--surfaceHover);
-  }
   
   .form-actions {
     display: flex;

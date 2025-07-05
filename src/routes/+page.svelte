@@ -214,9 +214,27 @@
     try {
       isStreaming = true;
       lastChatResponse = "";
+      
+      // Build conversation history for Claude (similar to Ollama)
+      let claudeMessages = [];
+      
+      if (countConvo == 0) {
+        // First message - just user message (Claude doesn't need system message in same format)
+        claudeMessages = [{ role: "user", content: userMsg }];
+      } else {
+        // Build full conversation history from chatConvo
+        claudeMessages = chatConvo.filter(msg => msg.role !== "system").map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+        // Add current user message
+        claudeMessages.push({ role: "user", content: userMsg });
+      }
+      
       await invoke('stream_claude', {
         model: selectedModel,
-        prompt: userMsg
+        prompt: userMsg,
+        messages: claudeMessages
       });
     } catch (error) {
       console.error(error);
@@ -517,14 +535,14 @@
 <div id="settings">
   <div class="settings-content">
     <header>
-      <h1 class='text-xl'>Settings</h1><button class="basic" on:click={Utils.closeSettings}>Close</button>
+      <h1 class='text-xl'>Settings</h1><Button type="icon-only" icon="close" on:click={Utils.closeSettings}/>
     </header>
 
     <section>
-      <h4 class='text-lg'>General</h4>
+      <h2 class='text-lg'>General</h2>
       <p style='display:flex;flex-direction:row;align-items:flex-end;gap:2.5rem;'>
 
-        <Select id='typeface' small={true} />
+        <!-- <Select id='typeface' small={true} /> -->
         <Toggle  id="darkModeToggle"  />
         <ColorPicker color={themeColor} on:colorChange={handleColorChange} />
       </p>
@@ -538,12 +556,19 @@
 </div>
 
 <header id="title">
-  <div id="weather">
-    <span class="weather-icon"></span>
-    <div><span class="weather-report"></span></div>
-    <div style="margin:0 1rem;color:var(--secondary)"> | </div><!-- <div class="weather-details"></div> -->
-    <button class='basic link' on:click={Utils.openSettings}>Settings</button>
+  <div class='left'>
+ 
+    <div id="weather">
+      <span class="weather-icon"></span>
+      <div><span class="weather-report"></span></div>
+     <!-- <div class="weather-details"></div> -->
+    
+    </div>
+    <span>|</span>
+    <Button label="Settings" type="link" on:click={Utils.openSettings} />
   </div>
+
+ 
   <!-- <button on:click={confirmDialog}>Show Dialog</button> -->
   <h1>Olly</h1>
   <!-- <button class="basic" on:click={Utils.toggleTheme}>Test it</button> -->
@@ -556,6 +581,7 @@
       placeholder="Search models..."
     />
   </div>
+ 
 </header>
 <main>
  

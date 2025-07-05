@@ -9,7 +9,7 @@
   <button on:click id={elID}>{label}</button>
 </div>
 
-<style>
+<style scoped>
   #buttonWrap {
     position: relative;
     z-index: 0;

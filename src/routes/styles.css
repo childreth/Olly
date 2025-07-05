@@ -238,6 +238,18 @@ header {
   border-bottom: 1px solid var(--secondary);
   background-color: var(--surface);
 
+  .left {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: .5rem;
+    color: var(--secondary);
+
+    > span {
+      opacity: .25;
+    }
+  }
+
   h1 {
     font-size: 2.5em;
     font-weight: 700;
@@ -264,12 +276,11 @@ header {
   #weather {
     display: flex;
     /* flex-grow: 1; */
-    width: 25%;
     align-items: center;
     justify-content: flex-start;
     flex-direction: row;
     background-size: 24px;
-    padding: 0.125rem 0 0 0;
+    padding: 0.125rem .25rem 0 0;
     line-height: 1.4rem;
     color: var(--primary);
     box-sizing: border-box;
@@ -459,7 +470,7 @@ section {
     flex-grow: 1;
     margin: 0;
   }
-  h2,h3 {
+  h1,h2,h3 {
     margin: 0;
     padding: 1rem 0;
   }
@@ -535,6 +546,7 @@ a:hover,
 .input {
   display: flex;
   flex-direction: column;
+  
 
   label {
     color: var(--secondary);
@@ -576,51 +588,7 @@ select:hover {
   background-color: var(--surface);
   transition: border-width 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
 }
-button {
-  cursor: pointer;
-}
 
-button.basic {
-  font-family: var(--bodyFamily);
-  border: 1px solid var(--secondary);
-  border-radius: 0.25rem;
-  padding: 0.25rem 1rem;
-  font-size: 0.875rem;
-  color: var(--primary);
-  background-color: transparent;
-}
-button.basic:hover {
-  background-color: var(--tertiary);
-  background-image: none;
-  color: var(--primary);
-  box-shadow: none;
-}
-button.icon {
-  background-color: transparent;
-  border: none;
-  
-  color: var(--primary);
-  padding: 0;
-  margin: 0;
-  width: 1.5rem;
-  height: 1.5rem;
-}
-button.icon:hover {
-  box-shadow: none;
-}
-
-button.link {
-  background-color: transparent;
-  border: none;
-  font-size: var(--fontSizeMedium);
-  color: var(--primary);
-  padding: .5rem .25rem;
-}
-button.link:hover {
-  box-shadow: none;
-  background-color: transparent;
-  text-decoration: underline;
-}
 
 .response {
   background-color: transparent;

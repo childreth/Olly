@@ -433,7 +433,7 @@ async fn validate_api_key(provider: String, api_key: String) -> Result<bool, Str
                 .header("Authorization", format!("Bearer {}", api_key))
                 .header("Content-Type", "application/json")
                 .json(&serde_json::json!({
-                    "model": "llama-3.1-sonar-small-128k-online",
+                    "model": "sonar",
                     "messages": [{"role": "user", "content": "hi"}],
                     "max_tokens": 1
                 }))
@@ -923,12 +923,23 @@ struct ClaudeRequest {
     temperature: f32,
     #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tools: Option<Vec<Tool>>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct Message {
     role: String,
     content: String,
+}
+
+#[derive(Serialize)]
+struct Tool {
+    #[serde(rename = "type")]
+    tool_type: String,
+    name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_uses: Option<u32>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -962,10 +973,24 @@ enum ClaudeStreamEvent {
 }
 
 #[derive(Deserialize, Debug)]
-struct ClaudeStreamDelta {
+#[serde(tag = "type")]
+enum ClaudeStreamDelta {
+    #[serde(rename = "text_delta")]
+    TextDelta { text: String },
+    #[serde(rename = "citations_delta")]
+    CitationsDelta { citation: Citation },
+    #[serde(other)]
+    Other,
+}
+
+#[derive(Deserialize, Debug)]
+struct Citation {
     #[serde(rename = "type")]
-    delta_type: String,
-    text: String,
+    citation_type: String,
+    cited_text: String,
+    url: String,
+    title: String,
+    encrypted_index: String,
 }
 
 fn get_config_path() -> PathBuf {
@@ -1187,7 +1212,7 @@ async fn migrate_claude_key(_app: tauri::AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn ask_claude(app: tauri::AppHandle, model: String, prompt: String) -> Result<String, String> {
+async fn ask_claude(app: tauri::AppHandle, model: String, prompt: String, messages: Vec<Message>) -> Result<String, String> {
     info!("Starting ask_claude with prompt: {}", prompt);
     
     let client = reqwest::Client::new();
@@ -1201,13 +1226,22 @@ async fn ask_claude(app: tauri::AppHandle, model: String, prompt: String) -> Res
     
     let request = ClaudeRequest {
         model: model_name,
-        messages: vec![Message {
-            role: "user".to_string(),
-            content: prompt,
-        }],
+        messages: if messages.is_empty() {
+            vec![Message {
+                role: "user".to_string(),
+                content: prompt,
+            }]
+        } else {
+            messages
+        },
         max_tokens: 1024,
         temperature: 0.0,
         stream: None,
+        tools: Some(vec![Tool {
+            tool_type: "web_search_20250305".to_string(),
+            name: "web_search".to_string(),
+            max_uses: Some(5),
+        }]),
     };
 
     info!("Sending request to Claude API...");
@@ -1258,7 +1292,7 @@ async fn ask_claude(app: tauri::AppHandle, model: String, prompt: String) -> Res
 }
 
 #[tauri::command]
-async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, model: String, prompt: String) -> Result<(), String> {
+async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, model: String, prompt: String, messages: Vec<Message>) -> Result<(), String> {
     info!("Starting stream_claude with prompt: {}", prompt);
     
     let client = reqwest::Client::new();
@@ -1272,13 +1306,22 @@ async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, model: Stri
     
     let request = ClaudeRequest {
         model: model_name,
-        messages: vec![Message {
-            role: "user".to_string(),
-            content: prompt,
-        }],
+        messages: if messages.is_empty() {
+            vec![Message {
+                role: "user".to_string(),
+                content: prompt,
+            }]
+        } else {
+            messages
+        },
         max_tokens: 1024,
         temperature: 0.0,
         stream: Some(true),
+        tools: Some(vec![Tool {
+            tool_type: "web_search_20250305".to_string(),
+            name: "web_search".to_string(),
+            max_uses: Some(5),
+        }]),
     };
 
     info!("Sending streaming request to Claude API...");
@@ -1352,14 +1395,24 @@ async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, model: Stri
                         Ok(event) => {
                             match event {
                                 ClaudeStreamEvent::ContentBlockDelta { delta, .. } => {
-                                    if !delta.text.is_empty() {
-                                        let content = &delta.text;
-                                        info!("Parsed content from Claude delta: {}", content);
-                                        full_response.push_str(content);
-                                        
-                                        // Emit event to frontend
-                                        if let Err(e) = window.emit("claude-stream", content) {
-                                            error!("Failed to emit claude-stream event: {}", e);
+                                    match delta {
+                                        ClaudeStreamDelta::TextDelta { text } => {
+                                            if !text.is_empty() {
+                                                info!("Parsed text from Claude delta: {}", text);
+                                                full_response.push_str(&text);
+                                                
+                                                // Emit event to frontend
+                                                if let Err(e) = window.emit("claude-stream", &text) {
+                                                    error!("Failed to emit claude-stream event: {}", e);
+                                                }
+                                            }
+                                        }
+                                        ClaudeStreamDelta::CitationsDelta { citation } => {
+                                            info!("Received citation: {} - {}", citation.title, citation.url);
+                                            // Could emit citation event to frontend if needed
+                                        }
+                                        ClaudeStreamDelta::Other => {
+                                            info!("Received other delta type, ignoring");
                                         }
                                     }
                                 }
@@ -1431,10 +1484,20 @@ async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, model: Stri
             match serde_json::from_str::<ClaudeStreamEvent>(json_str) {
                 Ok(event) => {
                     if let ClaudeStreamEvent::ContentBlockDelta { delta, .. } = event {
-                        if !delta.text.is_empty() {
-                            full_response.push_str(&delta.text);
-                            if let Err(e) = window.emit("claude-stream", &delta.text) {
-                                error!("Failed to emit claude-stream event from buffer: {}", e);
+                        match delta {
+                            ClaudeStreamDelta::TextDelta { text } => {
+                                if !text.is_empty() {
+                                    full_response.push_str(&text);
+                                    if let Err(e) = window.emit("claude-stream", &text) {
+                                        error!("Failed to emit claude-stream event from buffer: {}", e);
+                                    }
+                                }
+                            }
+                            ClaudeStreamDelta::CitationsDelta { citation } => {
+                                info!("Received citation from buffer: {} - {}", citation.title, citation.url);
+                            }
+                            ClaudeStreamDelta::Other => {
+                                info!("Received other delta type from buffer, ignoring");
                             }
                         }
                     }
