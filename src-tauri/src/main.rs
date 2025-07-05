@@ -765,13 +765,7 @@ async fn get_all_models() -> Result<Vec<serde_json::Value>, String> {
     
     let mut all_models = Vec::new();
     
-    // Add Claude models
-    all_models.push(serde_json::json!({
-        "id": "claude-3.5-sonnet",
-        "name": "Claude 3.5 Sonnet",
-        "description": "Most capable Claude model",
-        "provider": "claude"
-    }));
+    // Claude models are now handled dynamically in the frontend
     
     // Add Perplexity models
     let perplexity_models = get_perplexity_models().await?;
@@ -1193,7 +1187,7 @@ async fn migrate_claude_key(_app: tauri::AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn ask_claude(app: tauri::AppHandle, prompt: String) -> Result<String, String> {
+async fn ask_claude(app: tauri::AppHandle, model: String, prompt: String) -> Result<String, String> {
     info!("Starting ask_claude with prompt: {}", prompt);
     
     let client = reqwest::Client::new();
@@ -1202,8 +1196,11 @@ async fn ask_claude(app: tauri::AppHandle, prompt: String) -> Result<String, Str
     let api_key = load_api_key(&app, "claude")?;
     info!("Successfully loaded API key");
     
+    let model_name = model;
+    info!("Using Claude model: {}", model_name);
+    
     let request = ClaudeRequest {
-        model: "claude-3-7-sonnet-20250219".to_string(),
+        model: model_name,
         messages: vec![Message {
             role: "user".to_string(),
             content: prompt,
@@ -1261,7 +1258,7 @@ async fn ask_claude(app: tauri::AppHandle, prompt: String) -> Result<String, Str
 }
 
 #[tauri::command]
-async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, prompt: String) -> Result<(), String> {
+async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, model: String, prompt: String) -> Result<(), String> {
     info!("Starting stream_claude with prompt: {}", prompt);
     
     let client = reqwest::Client::new();
@@ -1270,8 +1267,11 @@ async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, prompt: Str
     let api_key = load_api_key(&app, "claude")?;
     info!("Successfully loaded API key");
     
+    let model_name = model;
+    info!("Using Claude model for streaming: {}", model_name);
+    
     let request = ClaudeRequest {
-        model: "claude-3-7-sonnet-20250219".to_string(),
+        model: model_name,
         messages: vec![Message {
             role: "user".to_string(),
             content: prompt,

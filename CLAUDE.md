@@ -38,6 +38,8 @@ npm run preview  # Preview built assets
 ## Architecture
 
 ### Frontend (SvelteKit)
+- **Language**: JavaScript (NOT TypeScript) - Use plain JS syntax without type annotations
+- **Type Checking**: Uses JSDoc comments and svelte-check for type validation
 - **Main app**: `src/routes/+page.svelte` - Primary chat interface
 - **Components**: `src/lib/components/` - Reusable UI components (buttons, selectors, toggles)
 - **Utilities**: `src/lib/utils.js` - Weather API, theme management, icon selection via AI
@@ -97,3 +99,17 @@ npm run preview  # Preview built assets
 - Weather icons specifically in `static/weather-icons/`
 - Tauri config: `src-tauri/tauri.conf.json`
 - Build artifacts: `build/` directory
+
+## Coding Standards
+
+### JavaScript/Svelte Components
+- **NO TypeScript**: This project uses JavaScript, not TypeScript
+- **NO Type Annotations**: Never use `param: type` syntax in function parameters or variables
+- **NO `lang="ts"`**: Always use `<script>` not `<script lang="ts">`
+- **Component Props**: Use `export let propName = defaultValue;` format
+- **Type Checking**: Relies on JSDoc comments and svelte-check for validation
+- **Function Signatures**: Use plain JavaScript function syntax without type annotations
+
+### Button Component Requirements
+- All Button components MUST include an `icon` prop (can be empty string `""`)
+- Required props: `label`, `icon` (others are optional)

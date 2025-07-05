@@ -10,9 +10,9 @@
   import Select from "$lib/components/select.svelte";
   import ColorPicker from "$lib/components/colorPicker.svelte";
   import Toggle from "$lib/components/darkModeToggle.svelte";
-  import SettingsModal from "$lib/components/settingsModal.svelte";
   import Toast from "$lib/components/toast.svelte";
   import SearchableSelect from "$lib/components/searchableSelect.svelte";
+  import TabbedModelManager from "$lib/components/tabbedModelManager.svelte";
   import { appWindow } from "@tauri-apps/api/window";
 
   import { open } from "@tauri-apps/api/dialog";
@@ -48,7 +48,6 @@
 
   let darkMode = false;
   let themeColor = "#000099"; // default color
-  let showSettings = false;
   
   // Toast notification state
   let toastVisible = false;
@@ -216,6 +215,7 @@
       isStreaming = true;
       lastChatResponse = "";
       await invoke('stream_claude', {
+        model: selectedModel,
         prompt: userMsg
       });
     } catch (error) {
@@ -298,12 +298,53 @@
         loadModelNames = [];
       }
       
-      // Add external API models to old format for settings
-      loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"],["Claude 3.5 Sonnet","Not local - External API","N/A","N/A"]);
+      // Get Claude models if API key is available
+      let claudeModels = [];
+      let claudeApiSuccess = false;
+      try {
+        const claudeApiKey = await invoke("get_api_key", { provider: "claude" });
+        if (claudeApiKey) {
+          const claudeResponse = await fetch('https://api.anthropic.com/v1/models?limit=5', {
+            method: 'GET',
+            headers: {
+              'x-api-key': claudeApiKey,
+              'anthropic-version': '2023-06-01'
+            }
+          });
+          
+          if (claudeResponse.ok) {
+            const claudeData = claudeResponse.data;
+            claudeModels = claudeData.data.map(model => ({
+              id: model.id,
+              name: model.display_name || model.id,
+              description: "Claude API model",
+              provider: "claude"
+            }));
+            // Add to old format for settings display
+            const claudeModelNames = claudeData.data.map(model => [
+              model.display_name || model.id,
+              "Not local - External API",
+              "N/A",
+              "N/A"
+            ]);
+            loadModelNames.push(...claudeModelNames);
+            claudeApiSuccess = true;
+          }
+        }
+      } catch (error) {
+        console.warn("Claude API not available:", error);
+      }
+    
+      // Add external API models to old format for settings (keeping fallback)
+      loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"]);
+      if (!claudeApiSuccess) {
+        console.log('No Claude models found, adding fallback');
+        loadModelNames.unshift(["Claude 3.5 Sonnet","Not local - External API","N/A","N/A"]);
+      }
       loadModelNames.push(...backendModels.filter(m => m.provider === "perplexity").map(m => [m.name, "Not local - External API", "N/A", "N/A"]));
       
       // Combine all models for the searchable select
-      allModels = [...backendModels, ...ollamaModels];
+      allModels = [...backendModels, ...ollamaModels, ...claudeModels];
       console.log('All models combined:', allModels);
       
     } catch (error) {
@@ -476,31 +517,21 @@
 <div id="settings">
   <div class="settings-content">
     <header>
-      <h3>Settings</h3><button class="basic" on:click={Utils.closeSettings}>Close</button>
+      <h1 class='text-xl'>Settings</h1><button class="basic" on:click={Utils.closeSettings}>Close</button>
     </header>
 
     <section>
-      <h4>General</h4>
+      <h4 class='text-lg'>General</h4>
       <p style='display:flex;flex-direction:row;align-items:flex-end;gap:2.5rem;'>
 
         <Select id='typeface' small={true} />
         <Toggle  id="darkModeToggle"  />
         <ColorPicker color={themeColor} on:colorChange={handleColorChange} />
-        <Button label="API Settings" on:click={() => showSettings = true} />
       </p>
-      <h4>Manage models</h4>
-    <ul>
-      <li class='thead'><span>Name</span> <span class='date'>Last updated</span> <span>Parameter</span><span>Quantization</span><span class='actions'>&nbsp;</span></li>
-      {#each loadModelNames as model}
-        <li>
-          <span>{model[0]}</span>
-          <span class='date'>{model[1]}</span>
-          <span>{model[2]}</span>
-          <span>{model[3]}</span>
-          <span>
-            <button class='basic' on:click={deleteModel(`${model[0]}`)}>Delete</button></span></li>
-      {/each}
-    </ul>
+      <TabbedModelManager 
+        {loadModelNames} 
+        onModelDeleted={loadModels}
+      />
   </section>
   </div>
   
@@ -511,7 +542,7 @@
     <span class="weather-icon"></span>
     <div><span class="weather-report"></span></div>
     <div style="margin:0 1rem;color:var(--secondary)"> | </div><!-- <div class="weather-details"></div> -->
-    <a class='basic' on:click={Utils.openSettings}>Settings</a>
+    <button class='basic link' on:click={Utils.openSettings}>Settings</button>
   </div>
   <!-- <button on:click={confirmDialog}>Show Dialog</button> -->
   <h1>Olly</h1>
@@ -581,7 +612,6 @@
   </div>
 </main>
 
-<SettingsModal bind:isOpen={showSettings} />
 <Toast bind:visible={toastVisible} message={toastMessage} type={toastType} />
 
 <style lang="">

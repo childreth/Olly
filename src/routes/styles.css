@@ -32,6 +32,35 @@
   --borderRadiusXXS: 0.375rem;
 
   --easeOutLong: cubic-bezier(0.15, 0.16, 0.21, 0.99);
+
+}
+
+:root {
+  --fontSizeXS: 0.75rem;
+  --fontSizeSmall: 0.875rem;
+  --fontSizeMedium: 1rem;
+  --fontSizeLarge: 1.25rem;
+  --fontSizeXLarge: 1.5rem;
+  --fontSizeXXLarge: 2rem;
+}
+
+.text-xs {
+  font-size: var(--fontSizeXS);
+}
+.text-sm {
+  font-size: var(--fontSizeSmall);
+}
+.text-md {
+  font-size: var(--fontSizeMedium);
+}
+.text-lg {
+  font-size: var(--fontSizeLarge);
+}
+.text-xl {
+  font-size: var(--fontSizeXLarge);
+}
+.text-xxl {
+  font-size: var(--fontSizeXXLarge);
 }
 svg {
   fill: currentColor;
@@ -578,6 +607,19 @@ button.icon {
 }
 button.icon:hover {
   box-shadow: none;
+}
+
+button.link {
+  background-color: transparent;
+  border: none;
+  font-size: var(--fontSizeMedium);
+  color: var(--primary);
+  padding: .5rem .25rem;
+}
+button.link:hover {
+  box-shadow: none;
+  background-color: transparent;
+  text-decoration: underline;
 }
 
 .response {
