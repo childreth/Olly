@@ -128,7 +128,7 @@
   .searchable-select {
     position: relative;
     width: 100%;
-    max-width: 224px;
+    max-width: 320px;
   }
 
   .search-input {
@@ -172,7 +172,7 @@
     /* left: 0; */
     right: 0;
     width:100%;
-    min-width: 240px;
+    min-width: 320px;
     background: var(--surface);
     border: 1px solid var(--secondary);
     border-radius: 1rem;

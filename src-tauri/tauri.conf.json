@@ -71,7 +71,7 @@
     "macOSPrivateApi": true,
     "bundle": {
       "active": true,
-      "targets": ["app", "dmg"],
+      "targets": ["app"],
       "identifier": "com.olly.app",
       "icon": [
         "icons/32x32.png",

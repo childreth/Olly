@@ -38,7 +38,7 @@
     background-image: none;
     font-family: var(--bodyFamily);
     padding: .25rem 1rem;
-    color: var(--surface);
+    color: var(--primary);
     font-size: 1rem;
     font-weight: 400;
     border-radius: var(--borderRadiusXS);
