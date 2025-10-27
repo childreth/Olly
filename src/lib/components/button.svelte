@@ -40,7 +40,7 @@
     padding: .25rem 1rem;
     color: var(--primary);
     font-size: 1rem;
-    font-weight: 400;
+    font-weight: 500;
     border-radius: var(--borderRadiusXS);
     display: flex;
     min-height: 2rem;
