@@ -141,16 +141,18 @@
 <h2 class='text-lg'>Manage models</h2>
 <div class="tabbed-model-manager">
   <div class="tab-header">
-    <Button 
-      label="Local"
-      type="{activeTab === 'local' ? 'secondary' : 'basic'}"
+    <button
+      class="tab-button {activeTab === 'local' ? 'active' : ''}"
       on:click={() => switchTab('local')}
-    />
-    <Button 
-      label="External"
-      type="{activeTab === 'external' ? 'secondary' : 'basic'}"
+    >
+      Local
+    </button>
+    <button
+      class="tab-button {activeTab === 'external' ? 'active' : ''}"
       on:click={() => switchTab('external')}
-    />
+    >
+      External
+    </button>
   </div>
   
   <div class="tab-content">
@@ -216,6 +218,7 @@
                     <Button 
                       label="Save" 
                       icon=""
+                      type="secondary"
                       on:click={() => saveApiKey(provider.id)} 
                       disabled={loading || !provider.apiKey || provider.apiKey === "••••••••"}
                     />
@@ -258,10 +261,11 @@
     border: none;
     background: none;
     color: var(--textSecondary);
+    font-family: var(--bodyFamily);
     cursor: pointer;
     font-size: 1rem;
     border-bottom: 2px solid transparent;
-    transition: all 0.2s ease;
+
   }
   
   .tab-button:hover {
@@ -272,7 +276,7 @@
   .tab-button.active {
     color: var(--accent);
     border-bottom-color: var(--accent);
-    background-color: var(--surfaceActive);
+    /* background-color: var(--surfaceActive); */
   }
   
   .tab-content {
@@ -307,7 +311,7 @@
   .models-table {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0;
   }
   
   .table-header,
@@ -334,7 +338,8 @@
   .table-row {
 
     font-size: var(--fontSizeMedium);
-    padding:  0.5rem;
+    padding:  0.75rem;
+    border-bottom: 1px solid var(--tertiary);
 
   }
   
@@ -355,11 +360,12 @@
   }
   
   .provider-card {
-    border: 1px solid var(--secondary);
-    border-radius: var(--borderRadiusS);
+    border-bottom: 1px solid var(--tertiary);
     padding: 1rem;
     display: flex;
     flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     gap: 1rem;
     background-color: var(--surface);
   }
@@ -368,7 +374,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    gap: .5rem;
   }
   
   .provider-header h5 {
@@ -378,11 +384,10 @@
   }
   
   .provider-status {
-    padding: 0.25rem 0.75rem;
+    padding: 0.125rem 0.375rem;
     border-radius: var(--borderRadiusXS);
     font-size: 0.8rem;
     font-weight: 500;
-    text-transform: uppercase;
   }
   
   .provider-status.connected {
@@ -402,7 +407,8 @@
   }
 
   .provider-form .form-row {
-    flex: 1 0 0;
+    flex: 1 1 auto;
+    min-width: 50%;
   }
 
   

@@ -14,13 +14,15 @@
     color: var(--primary);
     font-weight: 500;
     font-size: var(--fontSizeXS);
-    margin-bottom: 0.5rem;
+ 
+    padding-bottom: 0.125rem;
   }
   
   .form-field input {
     width: 100%;
     padding: 0.75rem;
     height: 2rem;
+    font-size: var(--fontSizeSmall);
     border: 1px solid var(--secondary);
     border-radius: var(--borderRadiusXS);
     background-color: var(--surface);

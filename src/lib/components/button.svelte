@@ -49,14 +49,13 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all cubic-bezier(0.67, -0.04, 0.31, 1.04) 0.4s;
+    /* transition: all cubic-bezier(0.67, -0.04, 0.31, 1.04) 0.4s; */
     box-sizing: border-box;
 }
   
 .secondary {
   font-family: var(--bodyFamily);
   border: 1px solid var(--secondary);
-  padding: 0.25rem 1rem;
   min-height:2rem;
   font-size: 0.875rem;
   color: var(--primary);
@@ -93,8 +92,9 @@
 }
 
   button:disabled {
-    opacity: 0.6;
+    /* opacity: 0.6; */
     cursor: not-allowed;
+    color: var(--primary);
   }
 
   
