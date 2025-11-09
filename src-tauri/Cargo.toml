@@ -25,6 +25,7 @@ env_logger = "0.10"
 futures-util = "0.3"
 keyring = "3.2"
 crossbeam-channel = "0.5.15"
+idna = "1.0.0"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
