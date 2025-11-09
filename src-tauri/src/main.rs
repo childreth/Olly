@@ -557,7 +557,7 @@ async fn debug_api_keys(_app: tauri::AppHandle) -> Result<String, String> {
     // Check keyring for known providers
     for provider in ["claude", "perplexity", "openai"] {
         let username = format!("{}_api_key", provider);
-        info!("Checking keyring for {}: service='{}', username='{}'", provider, service, username);
+        info!("Checking keyring for {}: service='{}'", provider, service);
         
         if let Ok(entry) = Entry::new(service, &username) {
             match entry.get_password() {
