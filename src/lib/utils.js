@@ -44,34 +44,42 @@ export async function getIcon(weather) {
       { role: 'user', content: weather }
     ],
   })
- // let iconName = (response.message.content).replace(/[\r\n\s]/g,'')+'.svg'
  console.log('respose',response.message.content)
-  let responseObject;
+  let iconName;
   try {
-    responseObject = JSON.parse(response.message.content);
-    // Validate that the JSON object has the expected structure
-    if (typeof responseObject.iconName !== 'string') {
-      console.warn(`Invalid iconName type, falling back to sad_face:`, responseObject.iconName);
+    const content = response.message.content.trim();
+    let parsedContent;
+    
+    // Try to parse as JSON
+    parsedContent = JSON.parse(content);
+    
+    // If it's an object with iconName property, use that; otherwise treat it as the icon name directly
+    iconName = typeof parsedContent === 'object' && parsedContent.iconName 
+      ? parsedContent.iconName 
+      : parsedContent;
+    
+    // Validate that iconName is a string
+    if (typeof iconName !== 'string') {
+      console.warn(`Invalid iconName type, falling back to sad_face:`, iconName);
       return 'sad_face.svg';
     }
+    
     // Whitelist validation for expected icon names
     const validIcons = [
-      "clear_night", "cloudy_night", "clear_foggy", "foggy",
+      "clear_night", "cloudy_night", "partly_cloudy_night", "clear_foggy", "foggy",
       "clear_sunny", "mostly_sunny", "partly_sunny", "rain",
       "snow", "thunderstorms", "windy", "sad_face"
     ];
-    if (!validIcons.includes(responseObject.iconName)) {
-      console.warn(`iconName "${responseObject.iconName}" not valid, falling back to sad_face`);
-      responseObject.iconName = 'sad_face';
+    if (!validIcons.includes(iconName)) {
+      console.warn(`iconName "${iconName}" not valid, falling back to sad_face`);
+      iconName = 'sad_face';
     }
   } catch (error) {
     console.warn('getIcon fallback, unable to parse/validate JSON:', error);
     return 'sad_face.svg'; // Fallback to existing icon
   }
-  console.log('responseObject: ',responseObject)
-  let iconName = responseObject.iconName + '.svg'
-  console.log('weather: ',weather, iconName)
-  return iconName
+  console.log('weather: ',weather, 'iconName:', iconName)
+  return iconName + '.svg'
   
 }
 
