@@ -201,7 +201,7 @@
     <div class="modal-content" on:click|stopPropagation>
       <div class="modal-header">
         <h2>API Key Settings</h2>
-        <button class="close-btn" on:click={closeModal}>&times;</button>
+        <button class="close-btn" on:click={closeModal}></button>
       </div>
       
       <div class="modal-body">

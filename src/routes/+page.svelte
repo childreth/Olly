@@ -14,6 +14,7 @@
   import SearchableSelect from "$lib/components/searchableSelect.svelte";
   import TabbedModelManager from "$lib/components/tabbedModelManager.svelte";
   import { appWindow } from "@tauri-apps/api/window";
+  
 
   import { open } from "@tauri-apps/api/dialog";
   import { confirm } from "@tauri-apps/api/dialog";
@@ -198,6 +199,11 @@
       isStreaming = false;
       Utils.addCopyButtonToPre();
     });
+    
+    // Initialize feather icons
+    if (typeof window !== 'undefined' && window.feather) {
+      window.feather.replace();
+    }
     
     //callOllama()
   });
@@ -580,14 +586,18 @@
   }
 </script>
 
+<svelte:head>
+  <script src="/src/lib/feather.min.js"></script>
+</svelte:head>
+
 <div id="settings">
   <div class="settings-content">
     <header>
-      <h1 class='text-xl'>Settings</h1><Button type="icon-only" icon="close" on:click={Utils.closeSettings}/>
+      <h1 class='text-xl'>Settings</h1><Button type="icon-only" icon="x" on:click={Utils.closeSettings}/>
     </header>
 
     <section>
-      <h2 class='text-lg'>General</h2>
+      <h2 class='text-lg'>General</h2><i data-feather="coffee"></i>
       <p style='display:flex;flex-direction:row;align-items:flex-end;gap:2.5rem;'>
 
         <!-- <Select id='typeface' small={true} /> -->

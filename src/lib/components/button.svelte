@@ -6,6 +6,7 @@
   export let disabled = false;
   
   import { createEventDispatcher } from 'svelte';
+  import Page from '../../routes/+page.svelte';
   const dispatch = createEventDispatcher();
   
   function handleClick() {
@@ -18,11 +19,12 @@
 <!-- markup (zero or more items) goes here -->
 <div id="buttonWrap">
   <button class="{type}" on:click={handleClick} {disabled}>
+    
   {#if type !== 'icon-only'}
     {label}
   {/if}
     {#if icon}
-    <img src="/images/{icon}.svg" alt="{icon} icon">
+    <span><i data-feather="{icon}"></i></span>
   {/if}
   </button>
  

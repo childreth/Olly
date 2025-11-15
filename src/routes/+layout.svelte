@@ -1,6 +1,18 @@
 <script>
   import "./styles.css";
+  import { onMount } from "svelte";
+
+  onMount(() => {
+    // Initialize feather icons after DOM is ready
+    if (typeof window !== 'undefined' && window.feather) {
+      window.feather.replace();
+    }
+  });
 </script>
+
+<svelte:head>
+  <script src="/src/lib/feather.min.js"></script>
+</svelte:head>
 
 <div id="window">
   <div data-tauri-drag-region class="titlebar">

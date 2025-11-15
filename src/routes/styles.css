@@ -63,7 +63,7 @@
   font-size: var(--fontSizeXXLarge);
 }
 svg {
-  fill: currentColor;
+  /* fill: currentColor; */
 }
 
 html {
@@ -111,29 +111,32 @@ h6 {
   font-size: 0.875rem;
 }
 strong {
-  font-weight: 700;
+  font-weight: 500;
 }
 h2,
 h3,
 h4,
 h5,
 h6 {
-  margin: 1.5rem 0 0.5rem 0;
-  font-weight: 500;
+  margin: 1.5rem 0 0.75rem 0;
+  font-weight: 600;
 }
 
 a,
 .highlighted {
   color: var(--link);
-  text-decoration-thickness: 0.1em;
+  text-decoration-thickness:1px;
   text-decoration: underline;
   text-underline-offset: 0.3em;
   text-decoration-skip-ink: none;
+  cursor: pointer;
   /* text-decoration: .2rem #646cff dotted underline; */
 }
-a:hover {
-  text-decoration-thickness: 0.2em;
-  font-weight: 500;
+a:hover,
+.highlighted:hover {
+  color: var(--link);
+   text-decoration-thickness:2px;
+  
 }
 p.subtitle {
   font-size: 1.5rem;
@@ -536,12 +539,7 @@ section {
   padding: 0rem 3.5rem 0;
 }
 
-a:hover,
-.highlighted:hover {
-  color: var(--link);
-  text-decoration: 0.1em solid underline;
-  cursor: pointer;
-}
+
 
 .input {
   display: flex;

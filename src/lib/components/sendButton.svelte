@@ -6,7 +6,7 @@
 
 <!-- markup (zero or more items) goes here -->
 <div id="buttonWrap" class="button-border button-anime {elID}">
-  <button on:click id={elID}>{label}</button>
+  <button on:click id={elID}><i data-feather="arrow-up"></i>{label}</button>
 </div>
 
 <style scoped>
