@@ -801,12 +801,26 @@ async fn get_ollama_models() -> Result<Vec<serde_json::Value>, String> {
                             let modified_at = model.get("modified_at").and_then(|m| m.as_str()).unwrap_or("Unknown");
                             let details = model.get("details").cloned().unwrap_or_else(|| serde_json::json!({}));
                             
+                            // Format the date to human-readable format
+                            let formatted_date = if modified_at != "Unknown" {
+                                match DateTime::parse_from_rfc3339(modified_at) {
+                                    Ok(dt) => {
+                                        // Convert to local time and format
+                                        let local_dt = dt.with_timezone(&chrono::Local);
+                                        local_dt.format("%b %d, %Y - %I:%M %p %Z").to_string()
+                                    }
+                                    Err(_) => modified_at.to_string()
+                                }
+                            } else {
+                                "Unknown".to_string()
+                            };
+                            
                             Some(serde_json::json!({
                                 "id": name,
                                 "name": name,
                                 "description": format!("{} - {}", 
                                     details.get("parameter_size").and_then(|p| p.as_str()).unwrap_or("Unknown"),
-                                    modified_at
+                                    formatted_date
                                 ),
                                 "provider": "ollama",
                                 "details": {
@@ -1737,16 +1751,20 @@ async fn stream_perplexity(window: tauri::Window, app: tauri::AppHandle, model: 
     
     let mut stream = response.bytes_stream();
     let mut full_response = String::new();
+    let mut buffer = String::new();
     
     while let Some(item) = stream.next().await {
         match item {
             Ok(bytes) => {
                 let chunk = String::from_utf8_lossy(&bytes);
-                info!("Received chunk: {}", chunk);
+                buffer.push_str(&chunk);
                 
-                // Split by lines (each line is a separate JSON object)
-                for line in chunk.lines() {
-                    if line.is_empty() || line == "data: [DONE]" {
+                // Process complete lines only
+                while let Some(newline_pos) = buffer.find('\n') {
+                    let line = buffer[..newline_pos].to_string();
+                    buffer = buffer[newline_pos + 1..].to_string();
+                    
+                    if line.trim().is_empty() || line.trim() == "data: [DONE]" {
                         continue;
                     }
                     
@@ -1754,12 +1772,11 @@ async fn stream_perplexity(window: tauri::Window, app: tauri::AppHandle, model: 
                     let json_str = if line.starts_with("data: ") {
                         &line[6..]
                     } else {
-                        line
+                        &line
                     };
                     
                     // Skip if the JSON string is empty or obviously invalid
                     if json_str.trim().is_empty() || !json_str.trim().starts_with('{') {
-                        error!("Skipping invalid JSON: {}", json_str);
                         continue;
                     }
                     
@@ -1769,7 +1786,6 @@ async fn stream_perplexity(window: tauri::Window, app: tauri::AppHandle, model: 
                             // Extract content from the first choice's delta if available
                             if let Some(choice) = parsed.choices.first() {
                                 if let Some(content) = &choice.delta.content {
-                                    info!("Parsed content: {}", content);
                                     full_response.push_str(content);
                                     
                                     // Emit event to frontend
@@ -1780,20 +1796,7 @@ async fn stream_perplexity(window: tauri::Window, app: tauri::AppHandle, model: 
                             }
                         },
                         Err(e) => {
-                            error!("Failed to parse JSON from chunk: {} - Error: {}", json_str, e);
-                            // Try to salvage any content by looking for delta.content pattern
-                            if let Some(content_start) = json_str.find("\"content\": \"") {
-                                if let Some(content_end) = json_str[content_start + 12..].find("\"") {
-                                    let content = &json_str[content_start + 12..content_start + 12 + content_end];
-                                    info!("Salvaged content: {}", content);
-                                    full_response.push_str(content);
-                                    
-                                    // Emit event to frontend with salvaged content
-                                    if let Err(e) = window.emit("perplexity-stream", content) {
-                                        error!("Failed to emit perplexity-stream event with salvaged content: {}", e);
-                                    }
-                                }
-                            }
+                            error!("Failed to parse JSON from line: {} - Error: {}", json_str, e);
                         }
                     }
                 }
