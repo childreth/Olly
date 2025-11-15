@@ -87,7 +87,7 @@ body {
   font-weight: 400;
   font-size: 1.25rem;
   color: var(--primary);
-  background-color: transparent;
+  background-color: var(--surface);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

@@ -785,6 +785,58 @@ async fn get_all_models() -> Result<Vec<serde_json::Value>, String> {
     Ok(all_models)
 }
 
+#[tauri::command]
+async fn get_ollama_models() -> Result<Vec<serde_json::Value>, String> {
+    info!("Getting Ollama models from localhost:11434");
+    
+    let client = reqwest::Client::new();
+    
+    match client.get("http://localhost:11434/api/tags").send().await {
+        Ok(response) => {
+            match response.json::<serde_json::Value>().await {
+                Ok(data) => {
+                    if let Some(models) = data.get("models").and_then(|m| m.as_array()) {
+                        let ollama_models = models.iter().filter_map(|model| {
+                            let name = model.get("name").and_then(|n| n.as_str())?;
+                            let modified_at = model.get("modified_at").and_then(|m| m.as_str()).unwrap_or("Unknown");
+                            let details = model.get("details").cloned().unwrap_or_else(|| serde_json::json!({}));
+                            
+                            Some(serde_json::json!({
+                                "id": name,
+                                "name": name,
+                                "description": format!("{} - {}", 
+                                    details.get("parameter_size").and_then(|p| p.as_str()).unwrap_or("Unknown"),
+                                    modified_at
+                                ),
+                                "provider": "ollama",
+                                "details": {
+                                    "modified_at": modified_at,
+                                    "parameter_size": details.get("parameter_size").and_then(|p| p.as_str()).unwrap_or("Unknown"),
+                                    "quantization_level": details.get("quantization_level").and_then(|q| q.as_str()).unwrap_or("Unknown")
+                                }
+                            }))
+                        }).collect::<Vec<_>>();
+                        
+                        info!("Successfully fetched {} Ollama models", ollama_models.len());
+                        Ok(ollama_models)
+                    } else {
+                        info!("No models found in Ollama response");
+                        Ok(Vec::new())
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to parse Ollama response: {}", e);
+                    Err(format!("Failed to parse Ollama response: {}", e))
+                }
+            }
+        }
+        Err(e) => {
+            error!("Failed to connect to Ollama: {}", e);
+            Err(format!("Failed to connect to Ollama at localhost:11434: {}", e))
+        }
+    }
+}
+
 fn main() {
     // Initialize logger
     env_logger::init();
@@ -793,7 +845,7 @@ fn main() {
     dotenvy::dotenv().ok();
     
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet, ask_claude, stream_claude, ask_perplexity, stream_perplexity, get_perplexity_models, get_all_models, get_env, store_api_key, get_api_key, list_api_key_providers, delete_api_key, get_provider_info, migrate_api_keys, validate_api_key, debug_api_keys, test_keyring, test_store_load, test_exact_keyring, store_api_key_debug, get_api_key_debug, migrate_claude_key])
+        .invoke_handler(tauri::generate_handler![greet, ask_claude, stream_claude, ask_perplexity, stream_perplexity, get_perplexity_models, get_all_models, get_ollama_models, get_env, store_api_key, get_api_key, list_api_key_providers, delete_api_key, get_provider_info, migrate_api_keys, validate_api_key, debug_api_keys, test_keyring, test_store_load, test_exact_keyring, store_api_key_debug, get_api_key_debug, migrate_claude_key])
         .setup(|app| {
             // Auto-migrate API keys on startup
             let app_handle = app.handle();

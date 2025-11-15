@@ -29,7 +29,7 @@
   }
 
   $: selectedOption = options.find(option => option[valueKey] === value);
-  $: displayValue = selectedOption ? selectedOption[displayKey] : '';
+  $: displayValue = selectedOption ? selectedOption[displayKey] : (value || '');
 
   function handleInputFocus() {
     isOpen = true;

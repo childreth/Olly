@@ -41,7 +41,10 @@
   const city = "Westford,MA";
   let name = "Craig";
   let loadModelNames = [];
-  let allModels = [];
+  let allModels = [
+    // Initialize with the currently selected model so it shows in dropdown immediately
+    { id: "smollm2:1.7b", name: "smollm2:1.7b", description: "Loading models...", provider: "ollama" }
+  ];
   let isStreaming = false;
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
@@ -59,13 +62,15 @@
 
   
   onMount(async () => {
+    console.log('=== APP MOUNTED ===');
+
     // Listen for API key migration events
     const unsubscribe = await listen("api-keys-migrated", (event) => {
       toastMessage = event.payload;
       toastType = "success";
       toastVisible = true;
     });
-    
+
     const savedColor = localStorage.getItem('themeColor');
     if (savedColor) {
       themeColor = savedColor;
@@ -93,11 +98,24 @@
     const imagePreview = document.querySelector("#thumbnails");
     const prompt = document.querySelector("#prompt");
     const apiKey = await invoke('get_env', { name: 'CLAUDE_API_KEY' });
-    
-    
+
+
 
     Utils.getCoordinates(city);
-    loadModels();
+
+    // Test Ollama command directly
+    try {
+      console.log('=== TESTING get_ollama_models COMMAND ===');
+      const testModels = await invoke("get_ollama_models");
+      console.log('Direct test result:', testModels);
+    } catch (error) {
+      console.error('Direct test failed:', error);
+    }
+
+    console.log('=== CALLING loadModels() ===');
+    await loadModels();
+    console.log('=== loadModels() COMPLETE ===');
+    console.log('Final allModels array:', allModels);
 
     const fileInput = document.querySelector("#file");
 
@@ -283,39 +301,40 @@
 
   async function loadModels() {
     try {
-      // Get all models from backend
-      const backendModels = await invoke("get_all_models");
-      console.log('Backend models:', backendModels);
-      
+      // Get all models from backend (don't fail if this errors)
+      let backendModels = [];
+      try {
+        backendModels = await invoke("get_all_models");
+        console.log('Backend models:', backendModels);
+      } catch (error) {
+        console.warn("Failed to get backend models:", error);
+      }
+
       // Get Ollama models if available
       let ollamaModels = [];
       try {
-        const ollama = new Ollama({ host: "http://localhost:11434" });
-        let models = await ollama.list();
-        ollamaModels = models.models.map((modelName) => ({
-          id: modelName.name,
-          name: modelName.name,
-          description: `${modelName.details.parameter_size} - ${Utils.formatDate(modelName.modified_at)}`,
-          provider: "ollama",
-          details: {
-            modified_at: modelName.modified_at,
-            parameter_size: modelName.details.parameter_size,
-            quantization_level: modelName.details.quantization_level
-          }
-        }));
-        
-        // Keep old format for settings display
-        loadModelNames = models.models.map((modelName) => [
-          modelName.name,  
-          Utils.formatDate(modelName.modified_at),
-          modelName.details.parameter_size,
-          modelName.details.quantization_level
-        ]);
+        console.log('Attempting to fetch Ollama models from backend...');
+        ollamaModels = await invoke("get_ollama_models");
+        console.log('Ollama models response:', ollamaModels);
+
+        if (ollamaModels && ollamaModels.length > 0) {
+          // Keep old format for settings display
+          loadModelNames = ollamaModels.map((model) => [
+            model.name,
+            model.details?.modified_at || "Unknown",
+            model.details?.parameter_size || "Unknown",
+            model.details?.quantization_level || "Unknown"
+          ]);
+          console.log(`Successfully loaded ${ollamaModels.length} Ollama models`);
+        } else {
+          console.warn('Ollama returned empty models list');
+          loadModelNames = [];
+        }
       } catch (error) {
         console.warn("Ollama not available:", error);
         loadModelNames = [];
       }
-      
+
       // Get Claude models if API key is available
       let claudeModels = [];
       let claudeApiSuccess = false;
@@ -329,7 +348,7 @@
               'anthropic-version': '2023-06-01'
             }
           });
-          
+
           if (claudeResponse.ok) {
             const claudeData = claudeResponse.data;
             claudeModels = claudeData.data.map(model => ({
@@ -352,7 +371,7 @@
       } catch (error) {
         console.warn("Claude API not available:", error);
       }
-    
+
       // Add external API models to old format for settings (keeping fallback)
       loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"]);
       if (!claudeApiSuccess) {
@@ -360,11 +379,22 @@
         loadModelNames.unshift(["Claude 3.5 Sonnet","Not local - External API","N/A","N/A"]);
       }
       loadModelNames.push(...backendModels.filter(m => m.provider === "perplexity").map(m => [m.name, "Not local - External API", "N/A", "N/A"]));
-      
+
       // Combine all models for the searchable select
       allModels = [...backendModels, ...ollamaModels, ...claudeModels];
       console.log('All models combined:', allModels);
-      
+      console.log('Total models loaded:', allModels.length);
+
+      // If no models were loaded at all, use fallback
+      if (allModels.length === 0) {
+        console.warn('No models loaded from any provider, using fallback');
+        allModels = [
+          { id: "claude-3-7-sonnet-20250219", name: "Claude 3.7 Sonnet", description: "Most capable Claude model", provider: "claude" },
+          { id: "fal-flux", name: "Fal - Flux", description: "Image generation model", provider: "fal" },
+          { id: "sonar-pro", name: "Sonar Pro", description: "Perplexity search model", provider: "perplexity" }
+        ];
+      }
+
     } catch (error) {
       console.error("Failed to load models:", error);
       // Fallback models
