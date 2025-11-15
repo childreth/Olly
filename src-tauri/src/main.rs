@@ -1615,6 +1615,7 @@ struct PerplexityMessage {
 #[derive(Deserialize, Debug)]
 struct PerplexityStreamResponse {
     choices: Vec<PerplexityStreamChoice>,
+    citations: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -1752,6 +1753,7 @@ async fn stream_perplexity(window: tauri::Window, app: tauri::AppHandle, model: 
     let mut stream = response.bytes_stream();
     let mut full_response = String::new();
     let mut buffer = String::new();
+    let mut citations: Option<Vec<String>> = None;
     
     while let Some(item) = stream.next().await {
         match item {
@@ -1783,6 +1785,12 @@ async fn stream_perplexity(window: tauri::Window, app: tauri::AppHandle, model: 
                     // Parse the JSON
                     match serde_json::from_str::<PerplexityStreamResponse>(json_str) {
                         Ok(parsed) => {
+                            // Capture citations if present (they come in the final chunk)
+                            if let Some(ref cites) = parsed.citations {
+                                citations = Some(cites.clone());
+                                info!("Received {} citations", cites.len());
+                            }
+                            
                             // Extract content from the first choice's delta if available
                             if let Some(choice) = parsed.choices.first() {
                                 if let Some(content) = &choice.delta.content {
@@ -1810,8 +1818,13 @@ async fn stream_perplexity(window: tauri::Window, app: tauri::AppHandle, model: 
     
     info!("Streaming completed. Full response: {}", full_response);
     
-    // Emit completion event with the full response
-    if let Err(e) = window.emit("perplexity-stream-done", full_response) {
+    // Emit completion event with the full response and citations
+    let completion_data = serde_json::json!({
+        "content": full_response,
+        "citations": citations
+    });
+    
+    if let Err(e) = window.emit("perplexity-stream-done", completion_data) {
         error!("Failed to emit perplexity-stream-done event: {}", e);
     }
     

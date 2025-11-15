@@ -64,6 +64,12 @@
   onMount(async () => {
     console.log('=== APP MOUNTED ===');
 
+    // Configure marked for proper markdown rendering
+    marked.setOptions({
+      breaks: true,
+      gfm: true
+    });
+
     // Listen for API key migration events
     const unsubscribe = await listen("api-keys-migrated", (event) => {
       toastMessage = event.payload;
@@ -177,6 +183,18 @@
     
     appWindow.listen('perplexity-stream-done', (event) => {
       console.log("Perplexity streaming completed");
+      const data = event.payload;
+      
+      // Add citations if present
+      if (data.citations && data.citations.length > 0) {
+        let citationsHtml = '\n\n---\n\n### References\n\n';
+        data.citations.forEach((/** @type {string} */ url, /** @type {number} */ index) => {
+          citationsHtml += `${index + 1}. [${url}](${url})\n`;
+        });
+        streamedGreeting += citationsHtml;
+        lastChatResponse += citationsHtml;
+      }
+      
       isStreaming = false;
       Utils.addCopyButtonToPre();
     });
