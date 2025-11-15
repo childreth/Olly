@@ -222,15 +222,13 @@
                       on:click={() => saveApiKey(provider.id)} 
                       disabled={loading || !provider.apiKey || provider.apiKey === "••••••••"}
                     />
-                    {#if provider.apiKey === "••••••••"}
                       <Button 
                         label="Delete" 
                         type="secondary" 
                         icon=""
                         on:click={() => deleteApiKey(provider.id)} 
-                        disabled={loading}
+                         disabled={loading || !provider.apiKey }
                       />
-                    {/if}
                   </div>
                 </div>
            
@@ -363,8 +361,8 @@
     border-bottom: 1px solid var(--tertiary);
     padding: 1rem;
     display: flex;
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
     background-color: var(--surface);
@@ -404,6 +402,7 @@
     display: flex;
     flex-direction: row;
     gap: 1rem;
+    width: 100%;
   }
 
   .provider-form .form-row {

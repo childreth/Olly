@@ -92,9 +92,10 @@
 }
 
   button:disabled {
-    /* opacity: 0.6; */
+    opacity: 0.6;
     cursor: not-allowed;
     color: var(--primary);
+    background-color: var(--tertiary);
   }
 
   
