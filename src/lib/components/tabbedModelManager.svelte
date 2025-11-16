@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import { Ollama } from "ollama/browser";
   import Button from "./button.svelte";
+  import { formatRelativeTime } from '$lib/utils.js';
   
   export let loadModelNames = [];
   export let onModelDeleted = () => {};
@@ -172,7 +173,7 @@
           {#each loadModelNames.filter(model => !model[1].includes('External API')) as model}
             <div class="table-row">
               <span class="">{model[0]}</span>
-              <span class="">{model[1]}</span>
+              <span class="">{formatRelativeTime(model[1])}</span>
               <span>{model[2]}</span>
               <span>{model[3]}</span>
               <span class="actions">

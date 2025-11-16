@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher } from 'svelte';
+  import { formatRelativeTime } from '$lib/utils.js';
 
   export let options = [];
   export let value = '';
@@ -8,6 +9,23 @@
   export let valueKey = 'id';
 
   const dispatch = createEventDispatcher();
+
+  function formatDescription(description) {
+    if (!description) return description;
+    
+    // Check if description contains a date pattern
+    // Matches both: "May 03, 2025 - 09:45 AM EST" and "May 03, 2025 - 09:45 AM -04:00"
+    const datePattern = /([A-Z][a-z]{2} \d{2}, \d{4} - \d{2}:\d{2} [AP]M (?:[A-Z]{3,4}|[+-]\d{2}:\d{2}))/;
+    const match = description.match(datePattern);
+    
+    if (match) {
+      const dateStr = match[1];
+      const relativeTime = formatRelativeTime(dateStr);
+      return description.replace(dateStr, relativeTime);
+    }
+    
+    return description;
+  }
 
   let searchTerm = '';
   let isOpen = false;
@@ -116,7 +134,7 @@
             {/if}
           </div>
           {#if option.description}
-            <div class="option-description">{option.description}</div>
+            <div class="option-description">{formatDescription(option.description)}</div>
           {/if}
         </div>
       {/each}

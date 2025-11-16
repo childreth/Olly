@@ -213,3 +213,60 @@ export function formatDate(dateString) {
   };
   return date.toLocaleString('en-US', options);
 }
+
+export function formatRelativeTime(dateString) {
+  if (!dateString) return dateString;
+
+  try {
+    // Parse date string - handle format: "May 03, 2025 - 09:45 AM -04:00"
+    const dateMatch = dateString.match(/([A-Z][a-z]{2}) (\d{2}), (\d{4}) - (\d{2}):(\d{2}) ([AP]M) ([+-]\d{2}:\d{2}|[A-Z]{3,4})/);
+    
+    if (!dateMatch) {
+      return dateString;
+    }
+    
+    // Parse the matched components
+    const [, month, day, year, hour, minute, ampm] = dateMatch;
+    
+    // Convert to 24-hour format
+    let hour24 = parseInt(hour);
+    if (ampm === 'PM' && hour24 !== 12) hour24 += 12;
+    if (ampm === 'AM' && hour24 === 12) hour24 = 0;
+    
+    // Create date string in a format JavaScript can parse
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthIndex = monthNames.indexOf(month);
+    
+    if (monthIndex === -1) {
+      return dateString;
+    }
+    
+    // Create date object (ignoring timezone for simplicity)
+    const date = new Date(parseInt(year), monthIndex, parseInt(day), hour24, parseInt(minute));
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
+    
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const diffWeeks = Math.floor(diffDays / 7);
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
+
+    if (diffSecs < 60) return "just now";
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks !== 1 ? 's' : ''} ago`;
+    if (diffMonths < 12) return `${diffMonths} month${diffMonths !== 1 ? 's' : ''} ago`;
+    return `${diffYears} year${diffYears !== 1 ? 's' : ''} ago`;
+  } catch (error) {
+    return dateString;
+  }
+}
