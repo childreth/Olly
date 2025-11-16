@@ -283,10 +283,15 @@
   }
   
   .message {
-    padding: 0.75rem;
+    padding: 0.5rem .75rem;
     border-radius: var(--borderRadiusXS);
     margin-bottom: 1rem;
     font-weight: 500;
+    font-size: var(--fontSizeSmall);
+    border: 1px solid var(--tertiary);
+    position: sticky;
+    top: .5rem;
+    z-index: 2;
   }
   
   .message.success {

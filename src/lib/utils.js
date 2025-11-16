@@ -215,34 +215,39 @@ export function formatDate(dateString) {
 }
 
 export function formatRelativeTime(dateString) {
-  if (!dateString) return dateString;
+  if (!dateString || dateString === "Unknown" || dateString.includes("External API")) {
+    return dateString;
+  }
 
   try {
-    // Parse date string - handle format: "May 03, 2025 - 09:45 AM -04:00"
-    const dateMatch = dateString.match(/([A-Z][a-z]{2}) (\d{2}), (\d{4}) - (\d{2}):(\d{2}) ([AP]M) ([+-]\d{2}:\d{2}|[A-Z]{3,4})/);
+    let date;
     
-    if (!dateMatch) {
-      return dateString;
+    // Try to parse as formatted date: "May 03, 2025 - 09:45 AM -04:00"
+    const formattedDateMatch = dateString.match(/([A-Z][a-z]{2}) (\d{2}), (\d{4}) - (\d{2}):(\d{2}) ([AP]M) ([+-]\d{2}:\d{2}|[A-Z]{3,4})/);
+    
+    if (formattedDateMatch) {
+      // Parse the matched components
+      const [, month, day, year, hour, minute, ampm] = formattedDateMatch;
+      
+      // Convert to 24-hour format
+      let hour24 = parseInt(hour);
+      if (ampm === 'PM' && hour24 !== 12) hour24 += 12;
+      if (ampm === 'AM' && hour24 === 12) hour24 = 0;
+      
+      // Create date string in a format JavaScript can parse
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthIndex = monthNames.indexOf(month);
+      
+      if (monthIndex === -1) {
+        return dateString;
+      }
+      
+      // Create date object
+      date = new Date(parseInt(year), monthIndex, parseInt(day), hour24, parseInt(minute));
+    } else {
+      // Try parsing as ISO date (RFC3339): "2025-11-07T20:34:17.377539404-05:00"
+      date = new Date(dateString);
     }
-    
-    // Parse the matched components
-    const [, month, day, year, hour, minute, ampm] = dateMatch;
-    
-    // Convert to 24-hour format
-    let hour24 = parseInt(hour);
-    if (ampm === 'PM' && hour24 !== 12) hour24 += 12;
-    if (ampm === 'AM' && hour24 === 12) hour24 = 0;
-    
-    // Create date string in a format JavaScript can parse
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthIndex = monthNames.indexOf(month);
-    
-    if (monthIndex === -1) {
-      return dateString;
-    }
-    
-    // Create date object (ignoring timezone for simplicity)
-    const date = new Date(parseInt(year), monthIndex, parseInt(day), hour24, parseInt(minute));
     
     // Check if date is valid
     if (isNaN(date.getTime())) {
