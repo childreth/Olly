@@ -31,6 +31,8 @@
   let result = "";
   let theImage= [];
   let theThumbnail = "";
+  let imageMediaType = "";
+  let isProcessingImage = false;
   let countConvo = 0;
   let userMsg = "tell me a dad joke";
   let lastChatResponse = "";
@@ -132,25 +134,40 @@
       }
     });
 
-    fileInput.addEventListener("change", (e) => {
+    fileInput.addEventListener("change", async (e) => {
       const file = fileInput.files[0];
-      const reader = new FileReader();
+      if (!file) return;
 
-      reader.addEventListener("load", () => {
-        let uploadedImg = reader.result.split(",")[1];
-        theThumbnail = reader.result;
-        theImage.push(uploadedImg);
-        // for thumbnail
+      // Show processing indicator
+      isProcessingImage = true;
+
+      try {
+        // Use the new compression utility
+        const compressed = await Utils.compressImage(file);
+
+        // Store compressed base64 and media type
+        theImage.push(compressed.base64);
+        imageMediaType = compressed.mediaType;
+        theThumbnail = compressed.thumbnail;
+
+        // Display thumbnail in UI
         let thumbnail = document.createElement("img");
-        thumbnail.src = reader.result;
+        thumbnail.src = compressed.thumbnail;
         imagePreview?.appendChild(thumbnail);
-        //document.querySelector("#thumbs").src = reader.result;
 
-        //let theImageURL = URL.createObjectURL(fileInput.files[0]);
-        //theImage = fileInput.files[0];1
-        console.log("reader: ", theImage);
-      });
-      reader.readAsDataURL(file);
+        console.log("Image compressed and ready:", {
+          originalSize: file.size,
+          compressedSize: compressed.base64.length,
+          mediaType: compressed.mediaType
+        });
+      } catch (error) {
+        console.error("Error processing image:", error);
+        toastMessage = "Failed to process image. Please try again.";
+        toastType = "error";
+        toastVisible = true;
+      } finally {
+        isProcessingImage = false;
+      }
     });
     document
       .getElementById("titlebar-minimize")
@@ -256,23 +273,88 @@
     try {
       isStreaming = true;
       lastChatResponse = "";
-      
-      // Build conversation history for Claude (similar to Ollama)
+
+      // Build conversation history for Claude
       let claudeMessages = [];
-      
+
       if (countConvo == 0) {
-        // First message - just user message (Claude doesn't need system message in same format)
-        claudeMessages = [{ role: "user", content: userMsg }];
+        // First message - check if we have images
+        if (theImage.length > 0) {
+          // Multimodal message with images
+          let content = [];
+
+          // Add images first
+          theImage.forEach(base64Data => {
+            content.push({
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: imageMediaType || "image/jpeg",
+                data: base64Data
+              }
+            });
+          });
+
+          // Add text content
+          content.push({
+            type: "text",
+            text: userMsg
+          });
+
+          claudeMessages = [{ role: "user", content: content }];
+        } else {
+          // Text-only message
+          claudeMessages = [{ role: "user", content: userMsg }];
+        }
       } else {
         // Build full conversation history from chatConvo
-        claudeMessages = chatConvo.filter(msg => msg.role !== "system").map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }));
-        // Add current user message
-        claudeMessages.push({ role: "user", content: userMsg });
+        claudeMessages = chatConvo.filter(msg => msg.role !== "system").map(msg => {
+          // Convert stored messages to proper format
+          if (msg.images && msg.images.length > 0) {
+            let content = [];
+            msg.images.forEach(base64Data => {
+              content.push({
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: imageMediaType || "image/jpeg",
+                  data: base64Data
+                }
+              });
+            });
+            content.push({
+              type: "text",
+              text: msg.content
+            });
+            return { role: msg.role, content: content };
+          } else {
+            return { role: msg.role, content: msg.content };
+          }
+        });
+
+        // Add current user message with images if present
+        if (theImage.length > 0) {
+          let content = [];
+          theImage.forEach(base64Data => {
+            content.push({
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: imageMediaType || "image/jpeg",
+                data: base64Data
+              }
+            });
+          });
+          content.push({
+            type: "text",
+            text: userMsg
+          });
+          claudeMessages.push({ role: "user", content: content });
+        } else {
+          claudeMessages.push({ role: "user", content: userMsg });
+        }
       }
-      
+
       await invoke('stream_claude', {
         model: selectedModel,
         prompt: userMsg,
@@ -281,7 +363,7 @@
     } catch (error) {
       console.error(error);
       isStreaming = false;
-      
+
       // Show error to user
       if (error.includes("API key not found")) {
         toastMessage = "Claude API key not found. Please add it in Settings → API Settings.";
@@ -444,16 +526,16 @@
     userMsg = document.querySelector("#prompt").textContent || "";
 
     //add user message to the top of the chat
-    streamedGreeting += `<h2 class="userMsg"> <span>${userMsg}</span>` + 
+    streamedGreeting += `<h2 class="userMsg"> <span>${userMsg}</span>` +
       `${theThumbnail ? `<img src="${theThumbnail}" alt="User uploaded image">` : ""}
       </h2>`;
-    
-    
+
+
     streamedGreeting += `<p><small><strong>${selectedModel}</strong></small></p>`
     document.querySelector("#prompt").textContent = "";
     document.querySelector("#thumbnails").innerHTML = "";
 
-    
+
 
     //add user message to the thread
     if (countConvo == 0) {
@@ -461,23 +543,27 @@
       chatConvo[countConvo++] = {
         role: "user",
         content: userMsg,
-        images: theImage,
+        images: [...theImage], // Clone array to preserve in history
+        mediaType: imageMediaType
       };
-      //clear the image array
-      theImage = [];
-      //chatConvo[countConvo++] = { role: "user", images: [theImage] };
     } else {
       chatConvo[countConvo++] = {
         role: "assistant",
         content: lastChatResponse,
-        images: theImage,
+        images: [],
       };
       chatConvo[countConvo++] = {
         role: "user",
         content: userMsg,
-        images: theImage,
+        images: [...theImage], // Clone array to preserve in history
+        mediaType: imageMediaType
       };
     }
+
+    // Clear image arrays AFTER adding to conversation
+    theImage = [];
+    theThumbnail = "";
+    imageMediaType = "";
 
     // Determine provider from selected model
     const provider = selectedModelOption ? selectedModelOption.provider : 'ollama';
@@ -540,16 +626,26 @@
     // sendBtn.textContent = "Send";
   }
 
+  let scrollScheduled = false;
+
   function autoScroll() {
     const chatContainer = document.querySelector("#chat-container");
     if (chatContainer) {
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
+    scrollScheduled = false;
+  }
+
+  function scheduleScroll() {
+    if (!scrollScheduled) {
+      scrollScheduled = true;
+      requestAnimationFrame(autoScroll);
+    }
   }
 
   $: if (streamedGreeting) {
-    // Use setTimeout to ensure the DOM has updated before scrolling
-    setTimeout(autoScroll, 0);
+    // Use requestAnimationFrame for smoother scrolling
+    scheduleScroll();
   }
 
   function changeModel() {
@@ -559,6 +655,8 @@
     chatConvo = [];
     lastChatResponse = "";
     theImage = [];
+    theThumbnail = "";
+    imageMediaType = "";
     tokenCount = 0;
     tokenSpeed = 0;
     document.querySelector("#thumbnails").innerHTML = "";
@@ -657,7 +755,10 @@
         <label for="file" class="custom-file-upload"
           ><span class="visualhide">Upload an image</span></label
         >
-        <input type="file" id="file" />
+        <input type="file" id="file" accept="image/jpeg,image/png,image/jpg" />
+        {#if isProcessingImage}
+          <span class="processing-indicator">Processing image...</span>
+        {/if}
       </div>
       <div id="thumbnails"></div>
       <div class="textarea-container">

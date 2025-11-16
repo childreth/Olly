@@ -784,6 +784,27 @@ input[type="file"] {
   display: none;
 }
 
+/* Processing indicator for image uploads */
+.processing-indicator {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  font-size: 0.75rem;
+  color: var(--primary);
+  font-style: italic;
+  white-space: nowrap;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .prompt,
 .email.preview {
   background-color: antiquewhite;

@@ -1,5 +1,128 @@
 import { Ollama } from "ollama/browser";
 export { Ollama }
+
+/**
+ * Compress and resize an image to optimize for vision model processing
+ * @param {File} file - The image file to compress
+ * @param {number} maxWidth - Maximum width in pixels (default: 1024)
+ * @param {number} maxHeight - Maximum height in pixels (default: 1024)
+ * @param {number} quality - JPEG quality 0-1 (default: 0.8)
+ * @returns {Promise<{base64: string, mediaType: string, thumbnail: string}>}
+ */
+export async function compressImage(file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      if (!e.target || !e.target.result) {
+        reject(new Error('Failed to read file'));
+        return;
+      }
+
+      const img = new Image();
+
+      img.onload = () => {
+        // Calculate new dimensions while maintaining aspect ratio
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          const aspectRatio = width / height;
+
+          if (width > height) {
+            width = maxWidth;
+            height = width / aspectRatio;
+          } else {
+            height = maxHeight;
+            width = height * aspectRatio;
+          }
+        }
+
+        // Create canvas for full-size compressed image
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        // Use better image smoothing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Create thumbnail (200px max)
+        const thumbCanvas = document.createElement('canvas');
+        const thumbMaxSize = 200;
+        let thumbWidth = width;
+        let thumbHeight = height;
+
+        if (thumbWidth > thumbMaxSize || thumbHeight > thumbMaxSize) {
+          const thumbRatio = thumbWidth / thumbHeight;
+          if (thumbWidth > thumbHeight) {
+            thumbWidth = thumbMaxSize;
+            thumbHeight = thumbWidth / thumbRatio;
+          } else {
+            thumbHeight = thumbMaxSize;
+            thumbWidth = thumbHeight * thumbRatio;
+          }
+        }
+
+        thumbCanvas.width = thumbWidth;
+        thumbCanvas.height = thumbHeight;
+        const thumbCtx = thumbCanvas.getContext('2d');
+
+        if (!thumbCtx) {
+          reject(new Error('Failed to get thumbnail canvas context'));
+          return;
+        }
+
+        thumbCtx.imageSmoothingEnabled = true;
+        thumbCtx.imageSmoothingQuality = 'high';
+        thumbCtx.drawImage(img, 0, 0, thumbWidth, thumbHeight);
+
+        // Determine media type
+        const mediaType = file.type || 'image/jpeg';
+
+        // Convert to base64
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('Failed to create blob from canvas'));
+            return;
+          }
+
+          const fullReader = new FileReader();
+          fullReader.onloadend = () => {
+            if (!fullReader.result || typeof fullReader.result !== 'string') {
+              reject(new Error('Failed to read blob as data URL'));
+              return;
+            }
+
+            const base64Full = fullReader.result.split(',')[1];
+            const thumbnail = thumbCanvas.toDataURL(mediaType, quality);
+
+            resolve({
+              base64: base64Full,
+              mediaType: mediaType,
+              thumbnail: thumbnail
+            });
+          };
+          fullReader.onerror = reject;
+          fullReader.readAsDataURL(blob);
+        }, mediaType, quality);
+      };
+
+      img.onerror = reject;
+      img.src = /** @type {string} */ (e.target.result);
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 //needs to optimize this
 export async function getIcon(weather) {
   

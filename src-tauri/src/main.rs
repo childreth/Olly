@@ -993,10 +993,34 @@ struct ClaudeRequest {
     tools: Option<Vec<Tool>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(untagged)]
+enum MessageContent {
+    Text(String),
+    Multimodal(Vec<ContentBlock>),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(tag = "type")]
+enum ContentBlock {
+    #[serde(rename = "text")]
+    Text { text: String },
+    #[serde(rename = "image")]
+    Image { source: ImageSource },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct ImageSource {
+    #[serde(rename = "type")]
+    source_type: String,
+    media_type: String,
+    data: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct Message {
     role: String,
-    content: String,
+    content: MessageContent,
 }
 
 #[derive(Serialize)]
@@ -1295,7 +1319,7 @@ async fn ask_claude(app: tauri::AppHandle, model: String, prompt: String, messag
         messages: if messages.is_empty() {
             vec![Message {
                 role: "user".to_string(),
-                content: prompt,
+                content: MessageContent::Text(prompt),
             }]
         } else {
             messages
@@ -1375,7 +1399,7 @@ async fn stream_claude(window: tauri::Window, app: tauri::AppHandle, model: Stri
         messages: if messages.is_empty() {
             vec![Message {
                 role: "user".to_string(),
-                content: prompt,
+                content: MessageContent::Text(prompt),
             }]
         } else {
             messages
