@@ -4,30 +4,28 @@
   export let type = "default";
   export let icon = "";
   export let disabled = false;
-  
-  import { createEventDispatcher } from 'svelte';
-  import Page from '../../routes/+page.svelte';
+
+  import { createEventDispatcher } from "svelte";
+  import Page from "../../routes/+page.svelte";
   const dispatch = createEventDispatcher();
-  
+
   function handleClick() {
     if (!disabled) {
-      dispatch('click');
+      dispatch("click");
     }
   }
 </script>
 
 <!-- markup (zero or more items) goes here -->
 <div id="buttonWrap">
-  <button class="{type}" on:click={handleClick} {disabled}>
-    
-  {#if type !== 'icon-only'}
-    {label}
-  {/if}
+  <button class={type} on:click={handleClick} {disabled}>
+    {#if type !== "icon-only"}
+      {label}
+    {/if}
     {#if icon}
-    <span><i data-feather="{icon}"></i></span>
-  {/if}
+      <span><i data-feather={icon}></i></span>
+    {/if}
   </button>
- 
 </div>
 
 <style scoped>
@@ -39,7 +37,7 @@
     background-color: var(--buttonbg);
     background-image: none;
     font-family: var(--bodyFamily);
-    padding: .25rem 1rem;
+    padding: 0.25rem 1rem;
     color: var(--primary);
     font-size: 1rem;
     font-weight: 500;
@@ -53,45 +51,46 @@
     cursor: pointer;
     /* transition: all cubic-bezier(0.67, -0.04, 0.31, 1.04) 0.4s; */
     box-sizing: border-box;
-}
-  
-.secondary {
-  font-family: var(--bodyFamily);
-  border: 1px solid var(--secondary);
-  min-height:2rem;
-  font-size: 0.875rem;
-  color: var(--primary);
-  background-color: transparent;
-}
+  }
 
-.secondary:hover {
-  background-color: var(--tertiary);
-  background-image: none;
-  color: var(--primary);
-  box-shadow: none;
-}
+  .secondary {
+    font-family: var(--bodyFamily);
+    border: 1px solid var(--secondary);
+    min-height: 2rem;
+    font-size: 0.875rem;
+    color: var(--primary);
+    background-color: transparent;
+  }
 
-.icon-only {
-  background-color: transparent;
-  max-width: 2rem;
-  max-height: 2rem;
+  .secondary:hover {
+    background-color: var(--tertiary);
+    background-image: none;
+    color: var(--primary);
+    box-shadow: none;
+  }
 
-}
+  .icon-only {
+    background-color: transparent;
+    max-width: 2rem;
+    max-height: 2rem;
+  }
 
+  .link {
+    background-color: transparent;
+    border: none;
+    font-size: var(--fontSizeMedium);
+    color: var(--primary);
+    padding: 0.5rem 0.25rem;
+    text-decoration-thickness: 2px;
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
+    text-decoration-skip-ink: none;
+  }
 
-.link {
-  background-color: transparent;
-  border: none;
-  font-size: var(--fontSizeMedium);
-  color: var(--primary);
-  padding: .5rem .25rem;
-}
-
-.link:hover {
-  box-shadow: none;
-  background-color: transparent;
-  text-decoration: underline;
-}
+  .link:hover {
+    box-shadow: none;
+    background-color: transparent;
+  }
 
   button:disabled {
     opacity: 0.6;
@@ -99,7 +98,4 @@
     color: var(--primary);
     background-color: var(--tertiary);
   }
-
-  
-  
 </style>

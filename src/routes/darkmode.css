@@ -34,29 +34,7 @@
   }
 
 
-  button.icon,button.icon-only {
-   color: var(--primary)!important;
-  }
-  button.icon:hover {
-    box-shadow: none;
-  }
-  button:hover {
-    box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 74%);
-  }
-  #buttonWrap button#stopBtn {
-    background-image: url("$lib/images/stop_dark.svg")!important;
-	color: var(--primary)!important;
-  box-shadow: 0 0 12px 0 hsl(var(--hue), 98%, 54%);
-  }
-  button.basic,button.copy-button {
-    color: var(--primary)!important;
-  }
-  button.basic:hover,button.copy-button:hover {
-    
-    background-image: none!important;
-    background-color: var(--secondary);
-    box-shadow: none;
-  }
+  
   .textarea-container .fakeTextarea:empty::before {
     content: "Hello...";
     color: var(--primary);

@@ -535,7 +535,9 @@
     document.querySelector("#prompt").textContent = "";
     document.querySelector("#thumbnails").innerHTML = "";
 
-
+    // Reset file input to allow selecting the same file again
+    const fileInput = document.querySelector("#file");
+    if (fileInput) fileInput.value = "";
 
     //add user message to the thread
     if (countConvo == 0) {
@@ -660,6 +662,11 @@
     tokenCount = 0;
     tokenSpeed = 0;
     document.querySelector("#thumbnails").innerHTML = "";
+
+    // Reset file input
+    const fileInput = document.querySelector("#file");
+    if (fileInput) fileInput.value = "";
+
     // ollama.stop();
   }
 
@@ -695,7 +702,7 @@
     </header>
 
     <section>
-      <h2 class='text-lg'>General</h2><i data-feather="coffee"></i>
+      <h2 class='text-lg'>General</h2>
       <p style='display:flex;flex-direction:row;align-items:flex-end;gap:2.5rem;'>
 
         <!-- <Select id='typeface' small={true} /> -->
@@ -781,9 +788,9 @@
 
       <div id="buttonContainer">
         <SendButton
-          label={isStreaming ? "Stop" : "Start"}
+          label={isStreaming ? "Stop" : "Send"}
           on:click={isStreaming ? stopStreaming : callOllama}
-          elID={isStreaming ? "stopBtn" : "sendBtn"}
+          elID="{isStreaming ? "stopBtn" : "sendBtn"}"
         />
       </div>
     </div>
