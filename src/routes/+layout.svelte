@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-  <script src="/src/lib/feather.min.js"></script>
+  <script src="/feather.min.js"></script>
 </svelte:head>
 
 <div id="window">

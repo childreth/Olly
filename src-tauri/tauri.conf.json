@@ -24,25 +24,27 @@
         "save": true
       },
       "app": {
-        "all": true, 
+        "all": true,
         "show": true,
         "hide": true
       },
       "os": {
         "all": true
       },
-      "http":{
-            "scope":[
-              "https://rickandmortyapi.com/*",
-              "https://api.anthropic.com/*",
-              "https://api.perplexity.ai/*",
-              "https://api.openai.com/*",
-              "https://api.weather.gov/*",
-              "https://nominatim.openstreetmap.org/*"
-            ],
-            "all": true,
-            "request": true
-        },
+      "http": {
+        "scope": [
+          "https://rickandmortyapi.com/**",
+          "https://api.anthropic.com/**",
+          "https://api.perplexity.ai/**",
+          "https://api.openai.com/**",
+          "https://api.weather.gov/**",
+          "https://nominatim.openstreetmap.org/**",
+          "http://**",
+          "https://**"
+        ],
+        "all": true,
+        "request": true
+      },
       "window": {
         "all": false,
         "close": true,
@@ -71,7 +73,9 @@
     "macOSPrivateApi": true,
     "bundle": {
       "active": true,
-      "targets": ["app"],
+      "targets": [
+        "app"
+      ],
       "identifier": "com.olly.app",
       "icon": [
         "icons/32x32.png",
@@ -81,7 +85,8 @@
         "icons/icon.ico"
       ],
       "resources": [
-        "Config.toml"
+        "Config.toml",
+        "../.env"
       ]
     }
   }

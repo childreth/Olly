@@ -1,5 +1,5 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Enable console window to see logs in release builds for debugging
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(dead_code)]
 
 use log::{info, error};
@@ -852,18 +852,51 @@ async fn get_ollama_models() -> Result<Vec<serde_json::Value>, String> {
 }
 
 fn main() {
-    // Initialize logger
+    // Initialize logger with more verbose output
+    #[cfg(debug_assertions)]
     env_logger::init();
-    
+
+    // In production, also enable logging to help diagnose issues
+    #[cfg(not(debug_assertions))]
+    {
+        use std::io::Write;
+        env_logger::Builder::from_default_env()
+            .filter_level(log::LevelFilter::Info)
+            .format(|buf, record| {
+                writeln!(buf, "[{}] {}", record.level(), record.args())
+            })
+            .init();
+    }
+
+    info!("Starting Olly application");
+
     // Load .env file
     dotenvy::dotenv().ok();
-    
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![greet, ask_claude, stream_claude, ask_perplexity, stream_perplexity, get_perplexity_models, get_all_models, get_ollama_models, get_env, store_api_key, get_api_key, list_api_key_providers, delete_api_key, get_provider_info, migrate_api_keys, validate_api_key, debug_api_keys, test_keyring, test_store_load, test_exact_keyring, store_api_key_debug, get_api_key_debug, migrate_claude_key])
         .setup(|app| {
+            info!("Running setup function");
+
+            // Load .env from resources in production
+            #[cfg(not(debug_assertions))]
+            {
+                if let Some(resource_path) = app.path_resolver().resolve_resource("../.env") {
+                    info!("Loading .env from resource path: {:?}", resource_path);
+                    if let Err(e) = dotenvy::from_path(&resource_path) {
+                        error!("Failed to load .env from resource path: {}", e);
+                    } else {
+                        info!("Successfully loaded .env from resource path");
+                    }
+                } else {
+                    error!("Failed to resolve .env resource path");
+                }
+            }
+
             // Auto-migrate API keys on startup
             let app_handle = app.handle();
             tauri::async_runtime::spawn(async move {
+                info!("Starting API key migration check");
                 if let Err(e) = auto_migrate_keys(&app_handle).await {
                     error!("Failed to auto-migrate API keys on startup: {}", e);
                 } else {
@@ -1199,11 +1232,20 @@ fn simple_decode(input: &[u8]) -> String {
 
 fn load_api_key(_app: &tauri::AppHandle, provider: &str) -> Result<String, String> {
     info!("Loading API key for provider: {}", provider);
-    
+
+    // Log the keys directory path for debugging
+    let keys_dir = get_keys_dir();
+    info!("Keys directory: {:?}", keys_dir);
+    info!("Keys directory exists: {}", keys_dir.exists());
+
     // First try our new file storage system
     match get_api_key_file(provider) {
         Ok(Some(key)) => {
-            info!("Loaded {} API key from file storage", provider);
+            info!("Loaded {} API key from file storage (length: {})", provider, key.len());
+            if key.is_empty() {
+                error!("{} API key is empty!", provider);
+                return Err(format!("{} API key is empty. Please add a valid key in Settings.", provider));
+            }
             return Ok(key);
         }
         Ok(None) => {
@@ -1213,38 +1255,57 @@ fn load_api_key(_app: &tauri::AppHandle, provider: &str) -> Result<String, Strin
             error!("Error reading {} API key from file storage: {}", provider, e);
         }
     }
-    
+
     // Migration: Check environment variable and config file, then migrate to file storage
     let env_var = format!("{}_API_KEY", provider.to_uppercase());
-    
+    info!("Checking environment variable: {}", env_var);
+
     // Check environment variable
     if let Ok(key) = std::env::var(&env_var) {
-        info!("Found {} API key in environment variable, migrating to file storage", provider);
-        if let Err(e) = store_api_key_file(provider, &key) {
-            error!("Failed to migrate {} API key from environment: {}", provider, e);
+        if key.trim().is_empty() {
+            info!("Found {} environment variable but it's empty", env_var);
         } else {
-            info!("Successfully migrated {} API key from environment to file storage", provider);
-            return Ok(key);
+            info!("Found {} API key in environment variable (length: {}), migrating to file storage", provider, key.len());
+            if let Err(e) = store_api_key_file(provider, &key) {
+                error!("Failed to migrate {} API key from environment: {}", provider, e);
+            } else {
+                info!("Successfully migrated {} API key from environment to file storage", provider);
+                return Ok(key);
+            }
         }
+    } else {
+        info!("Environment variable {} not found", env_var);
     }
-    
+
     // Check config file
     let config_path = get_config_path();
-    if let Ok(contents) = fs::read_to_string(config_path) {
+    info!("Config path: {:?}", config_path);
+    info!("Config file exists: {}", config_path.exists());
+
+    if let Ok(contents) = fs::read_to_string(&config_path) {
+        info!("Read config file, checking for {} key", provider);
         let config_prefix = format!("{}=", env_var);
         for line in contents.lines() {
             if let Some(key) = line.strip_prefix(&config_prefix) {
-                info!("Found {} API key in config file, migrating to file storage", provider);
-                if let Err(e) = store_api_key_file(provider, key.trim()) {
-                    error!("Failed to migrate {} API key from config: {}", provider, e);
+                if key.trim().is_empty() {
+                    info!("Found {} in config but value is empty", env_var);
                 } else {
-                    info!("Successfully migrated {} API key from config to file storage", provider);
-                    return Ok(key.trim().to_string());
+                    info!("Found {} API key in config file (length: {}), migrating to file storage", provider, key.trim().len());
+                    if let Err(e) = store_api_key_file(provider, key.trim()) {
+                        error!("Failed to migrate {} API key from config: {}", provider, e);
+                    } else {
+                        info!("Successfully migrated {} API key from config to file storage", provider);
+                        return Ok(key.trim().to_string());
+                    }
                 }
             }
         }
+        info!("No {} key found in config file", provider);
+    } else {
+        info!("Could not read config file");
     }
-    
+
+    error!("{} API key not found in any location", provider);
     Err(format!("{} API key not found. Please add it in Settings.", provider))
 }
 
@@ -1337,7 +1398,7 @@ async fn ask_claude(app: tauri::AppHandle, model: String, prompt: String, messag
     info!("Sending request to Claude API...");
     let response = match client
         .post("https://api.anthropic.com/v1/messages")
-        .header("x-api-key", api_key)
+        .header("x-api-key", &api_key)
         .header("anthropic-version", "2023-06-01")
         .header("content-type", "application/json")
         .json(&request)
@@ -1347,15 +1408,28 @@ async fn ask_claude(app: tauri::AppHandle, model: String, prompt: String, messag
                 if !resp.status().is_success() {
                     let status = resp.status();
                     let error_text = resp.text().await.unwrap_or_else(|_| "Could not read error response".to_string());
-                    error!("API request failed with status {}: {}", status, error_text);
-                    return Err(format!("API request failed: {} - {}", status, error_text));
+                    error!("Claude API request failed with status {}: {}", status, error_text);
+
+                    if status == 401 {
+                        return Err("Authentication failed. Please check your Claude API key in Settings.".to_string());
+                    } else if status == 429 {
+                        return Err("Rate limit exceeded. Please try again later.".to_string());
+                    } else {
+                        return Err(format!("Claude API error ({}): {}", status, error_text));
+                    }
                 }
                 info!("Received response from Claude API with status: {}", resp.status());
                 resp
             },
             Err(e) => {
-                error!("Failed to send request to Claude API: {}", e);
-                return Err(e.to_string());
+                error!("Failed to connect to Claude API: {}", e);
+                if e.is_timeout() {
+                    return Err("Request timed out. Please check your internet connection.".to_string());
+                } else if e.is_connect() {
+                    return Err("Could not connect to Claude API. Please check your internet connection.".to_string());
+                } else {
+                    return Err(format!("Network error: {}", e));
+                }
             }
         };
 
@@ -1689,15 +1763,28 @@ async fn ask_perplexity(app: tauri::AppHandle, model: String, prompt: String) ->
                 if !resp.status().is_success() {
                     let status = resp.status();
                     let error_text = resp.text().await.unwrap_or_else(|_| "Could not read error response".to_string());
-                    error!("API request failed with status {}: {}", status, error_text);
-                    return Err(format!("API request failed: {} - {}", status, error_text));
+                    error!("Perplexity API request failed with status {}: {}", status, error_text);
+
+                    if status == 401 {
+                        return Err("Authentication failed. Please check your Perplexity API key in Settings.".to_string());
+                    } else if status == 429 {
+                        return Err("Rate limit exceeded. Please try again later.".to_string());
+                    } else {
+                        return Err(format!("Perplexity API error ({}): {}", status, error_text));
+                    }
                 }
                 info!("Received response from Perplexity API with status: {}", resp.status());
                 resp
             },
             Err(e) => {
-                error!("Failed to send request to Perplexity API: {}", e);
-                return Err(e.to_string());
+                error!("Failed to connect to Perplexity API: {}", e);
+                if e.is_timeout() {
+                    return Err("Request timed out. Please check your internet connection.".to_string());
+                } else if e.is_connect() {
+                    return Err("Could not connect to Perplexity API. Please check your internet connection.".to_string());
+                } else {
+                    return Err(format!("Network error: {}", e));
+                }
             }
         };
 

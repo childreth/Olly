@@ -1,4 +1,5 @@
 import { Ollama } from "ollama/browser";
+import { fetch as tauriFetch, ResponseType } from "@tauri-apps/api/http";
 export { Ollama }
 
 /**
@@ -268,40 +269,107 @@ export function initTheme() {
         const theWeather = document.querySelector("#weather .weather-report");
         const theWeatherDetails = document.querySelector("#weather .weather-details");
         const theIcon = document.querySelector("#weather .weather-icon");
+        
+        if (!theWeather) {
+          console.error('Weather element not found in DOM');
+          return;
+        }
+        
         theWeather.textContent = 'Loading...';
 
-        const report = await fetch(
-          `https://api.weather.gov/points/${lat},${lon}`
+        console.log('Fetching weather for:', lat, lon);
+        const report = await tauriFetch(
+          `https://api.weather.gov/points/${lat},${lon}`,
+          {
+            method: 'GET',
+            responseType: ResponseType.JSON,
+            headers: {
+              'User-Agent': 'Olly Weather App/1.0'
+            }
+          }
         );
-        console.log('report: ',report)
-        const locationGrid = await report.json();
+        console.log('Weather report response:', report);
+        console.log('Report data type:', typeof report.data);
+        console.log('Report data:', report.data);
+        console.log('Report status:', report.status);
+
+        // The data might already be parsed JSON
+        const locationGrid = typeof report.data === 'string' ? JSON.parse(report.data) : report.data;
+        console.log('Location grid:', locationGrid);
+
+        if (!locationGrid || !locationGrid.properties || !locationGrid.properties.forecast) {
+          console.error('Invalid weather API response structure. LocationGrid:', locationGrid);
+          throw new Error('Invalid weather API response structure');
+        }
+
         const forecastURL = locationGrid.properties.forecast
-        
-        const forecastReturn = await fetch(forecastURL);
-        const theForecast = await forecastReturn.json();
+        console.log('Forecast URL:', forecastURL);
+
+        const forecastReturn = await tauriFetch(forecastURL, {
+          method: 'GET',
+          responseType: ResponseType.JSON,
+          headers: {
+            'User-Agent': 'Olly Weather App/1.0'
+          }
+        });
+        console.log('Forecast response:', forecastReturn);
+
+        const theForecast = typeof forecastReturn.data === 'string' ? JSON.parse(forecastReturn.data) : forecastReturn.data;
+        console.log('Forecast data:', theForecast);
+
         const forecastDetails = theForecast.properties.periods[0]
-        
+
         let iconWeather = `${forecastDetails.shortForecast}  ${forecastDetails.isDaytime ? 'Day' : 'Night'}`
 
         const icon = await getIcon(iconWeather)
-        
+
         theIcon.style.mask = `url('/weather-icons/${icon}')`;
         theWeather.textContent = `${forecastDetails.name}: ${forecastDetails.temperature}°F`;
         // theWeatherDetails.textContent = `${forecastDetails.shortForecast}`;
     }
     catch (error) {
       console.error('Error fetching weather data:', error);
-      theWeather.textContent = 'Current weather unavailable.'
+      const theWeather = document.querySelector("#weather .weather-report");
+      if (theWeather) {
+        theWeather.textContent = 'Current weather unavailable.'
+      }
     }
-    
+
     //return ;
   }
   export async function getCoordinates(city) {
-  const location = await fetch(`https://nominatim.openstreetmap.org/search?q=${city}&format=json`,);
-  const output = await location.json();
-  const lat = output[0].lat;
-  const lon = output[0].lon;
-  weatherReport(lat,lon)
+  try {
+    console.log('Fetching coordinates for city:', city);
+    const location = await tauriFetch(
+      `https://nominatim.openstreetmap.org/search?q=${city}&format=json`,
+      {
+        method: 'GET',
+        responseType: ResponseType.JSON,
+        headers: {
+          'User-Agent': 'Olly Weather App/1.0'
+        }
+      }
+    );
+    console.log('Coordinates response:', location);
+    console.log('Coordinates status:', location.status);
+    console.log('Coordinates data type:', typeof location.data);
+
+    const output = typeof location.data === 'string' ? JSON.parse(location.data) : location.data;
+    console.log('Parsed location data:', output);
+
+    if (output && output.length > 0) {
+      const lat = output[0].lat;
+      const lon = output[0].lon;
+      console.log('Found coordinates:', lat, lon);
+      weatherReport(lat,lon)
+    } else {
+      console.error('No location data found for city:', city);
+      console.error('Full response:', location);
+    }
+  } catch (error) {
+    console.error('Error fetching coordinates:', error);
+    console.error('Error details:', error.message, error.stack);
+  }
  //console.log('WeatherCity: ',lat,lon)
 }
 export function closeSettings() {
