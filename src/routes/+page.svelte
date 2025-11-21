@@ -37,7 +37,17 @@
   let userMsg = "tell me a dad joke";
   let lastChatResponse = "";
   let streamedGreeting = "";
-  $: responseMarked = marked.parse(streamedGreeting);
+  $: responseMarked = (() => {
+    if (!streamedGreeting) return '';
+
+    let parsed = marked.parse(streamedGreeting);
+
+    // Post-process: wrap any unwrapped text nodes in <p> tags
+    // Match text that's not already inside HTML tags at the start
+    parsed = parsed.replace(/^([^<][^\n]*?)(<|$)/m, '<p>$1</p>$2');
+
+    return parsed;
+  })();
   let chatConvo = [];
   let tokenSpeed = 0;
   let tokenCount = 0;
@@ -61,7 +71,7 @@
   let toastType = "info";
 
 //very basic system prompt to test speed vs terimal interface
-  const systemMsg = `You are a somewhat helpful assistant and like really responsing with emojies. You job will be to help write better content for the user.`;
+  const systemMsg = `You are a helpful assistant and like really responsing with emojies. You job will be to help write better content for the user. Always return markdown formatted responses.`;
 
   
   onMount(async () => {
@@ -70,7 +80,8 @@
     // Configure marked for proper markdown rendering
     marked.setOptions({
       breaks: true,
-      gfm: true
+      gfm: true,
+      pedantic: false
     });
 
     // Listen for API key migration events
@@ -531,7 +542,8 @@
       </h2>`;
 
 
-    streamedGreeting += `<p><small><strong>${selectedModel}</strong></small></p>`
+    streamedGreeting += `<p><small><strong>${selectedModel}</strong></small></p>`;
+    streamedGreeting += "\n\n";
     document.querySelector("#prompt").textContent = "";
     document.querySelector("#thumbnails").innerHTML = "";
 
