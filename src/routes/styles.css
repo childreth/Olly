@@ -241,8 +241,9 @@ header {
   border-bottom: 1px solid var(--secondary);
   background-color: var(--surface);
 
-  .left {
+  .leftCol {
     display: flex;
+    flex: 1;
     align-items: center;
     justify-content: flex-start;
     gap: .5rem;
@@ -263,7 +264,7 @@ header {
     padding: 1.75rem 0 1.75rem 0;
     display: flex;
     /* width: 25%; */
-    flex-grow: 1;
+    flex-grow: 0;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
@@ -318,9 +319,10 @@ header {
       color: var(--secondary);
     }
   }
-  .input-vertical {
+  .rightCol {
     display: flex;
     width: 25%;
+    flex: 1;
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
@@ -674,6 +676,7 @@ select:hover {
 
   .input-vertical {
     display: flex;
+    flex: 1 o auto;
     flex-direction: row;
     align-items: center;
 

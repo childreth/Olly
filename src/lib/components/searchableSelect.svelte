@@ -1,33 +1,34 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-  import { formatRelativeTime } from '$lib/utils.js';
+  import { createEventDispatcher } from "svelte";
+  import { formatRelativeTime } from "$lib/utils.js";
 
   export let options = [];
-  export let value = '';
-  export let placeholder = 'Search models...';
-  export let displayKey = 'name';
-  export let valueKey = 'id';
+  export let value = "";
+  export let placeholder = "Search models...";
+  export let displayKey = "name";
+  export let valueKey = "id";
 
   const dispatch = createEventDispatcher();
 
   function formatDescription(description) {
     if (!description) return description;
-    
+
     // Check if description contains a date pattern
     // Matches both: "May 03, 2025 - 09:45 AM EST" and "May 03, 2025 - 09:45 AM -04:00"
-    const datePattern = /([A-Z][a-z]{2} \d{2}, \d{4} - \d{2}:\d{2} [AP]M (?:[A-Z]{3,4}|[+-]\d{2}:\d{2}))/;
+    const datePattern =
+      /([A-Z][a-z]{2} \d{2}, \d{4} - \d{2}:\d{2} [AP]M (?:[A-Z]{3,4}|[+-]\d{2}:\d{2}))/;
     const match = description.match(datePattern);
-    
+
     if (match) {
       const dateStr = match[1];
       const relativeTime = formatRelativeTime(dateStr);
       return description.replace(dateStr, relativeTime);
     }
-    
+
     return description;
   }
 
-  let searchTerm = '';
+  let searchTerm = "";
   let isOpen = false;
   let filteredOptions = [];
   let selectedIndex = -1;
@@ -35,23 +36,25 @@
   let inputElement;
 
   $: {
-    if (searchTerm === '') {
+    if (searchTerm === "") {
       filteredOptions = options;
     } else {
-      filteredOptions = options.filter(option =>
-        option[displayKey].toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (option.description && option.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      filteredOptions = options.filter(
+        (option) =>
+          option[displayKey].toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (option.description &&
+            option.description.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
     selectedIndex = -1;
   }
 
-  $: selectedOption = options.find(option => option[valueKey] === value);
-  $: displayValue = selectedOption ? selectedOption[displayKey] : (value || '');
+  $: selectedOption = options.find((option) => option[valueKey] === value);
+  $: displayValue = selectedOption ? selectedOption[displayKey] : value || "";
 
   function handleInputFocus() {
     isOpen = true;
-    searchTerm = '';
+    searchTerm = "";
   }
 
   function handleInputBlur(event) {
@@ -59,22 +62,22 @@
     setTimeout(() => {
       if (!dropdownElement?.contains(document.activeElement)) {
         isOpen = false;
-        searchTerm = '';
+        searchTerm = "";
       }
     }, 150);
   }
 
   function selectOption(option) {
     value = option[valueKey];
-    searchTerm = '';
+    searchTerm = "";
     isOpen = false;
     inputElement?.blur();
-    dispatch('change', { value: option[valueKey], option });
+    dispatch("change", { value: option[valueKey], option });
   }
 
   function handleKeyDown(event) {
     if (!isOpen) {
-      if (event.key === 'Enter' || event.key === 'ArrowDown') {
+      if (event.key === "Enter" || event.key === "ArrowDown") {
         event.preventDefault();
         isOpen = true;
         selectedIndex = 0;
@@ -83,24 +86,24 @@
     }
 
     switch (event.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         event.preventDefault();
         selectedIndex = Math.min(selectedIndex + 1, filteredOptions.length - 1);
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         event.preventDefault();
         selectedIndex = Math.max(selectedIndex - 1, -1);
         break;
-      case 'Enter':
+      case "Enter":
         event.preventDefault();
         if (selectedIndex >= 0 && filteredOptions[selectedIndex]) {
           selectOption(filteredOptions[selectedIndex]);
         }
         break;
-      case 'Escape':
+      case "Escape":
         event.preventDefault();
         isOpen = false;
-        searchTerm = '';
+        searchTerm = "";
         inputElement?.blur();
         break;
     }
@@ -118,7 +121,7 @@
     class="search-input"
     autocomplete="off"
   />
-  
+  <span class="icon"><i data-feather="chevron-down"></i></span>
   {#if isOpen && filteredOptions.length > 0}
     <div bind:this={dropdownElement} class="dropdown">
       {#each filteredOptions as option, index}
@@ -134,7 +137,9 @@
             {/if}
           </div>
           {#if option.description}
-            <div class="option-description">{formatDescription(option.description)}</div>
+            <div class="option-description">
+              {formatDescription(option.description)}
+            </div>
           {/if}
         </div>
       {/each}
@@ -145,8 +150,20 @@
 <style>
   .searchable-select {
     position: relative;
-    width: 100%;
-    max-width: 320px;
+    max-width: 224px;
+  }
+
+  .icon {
+    position: absolute;
+    right: 16px;
+    top: 54%;
+    transform: translateY(-50%);
+
+  }
+
+  .icon :global(.feather) {
+    width: 16px;
+    height: 16px;
   }
 
   .search-input {
@@ -161,11 +178,8 @@
     border-radius: 2rem;
     font-family: var(--bodyFamily);
     background-color: transparent;
-    background-image: url("$lib/images/keyboard_arrow_down.svg");
-    background-repeat: no-repeat;
-    background-position: calc(100% - 0.75rem) center;
-    background-size: 24px;
     box-sizing: border-box;
+    transition: box-shadow ease 0.24s;
   }
   .search-input::placeholder {
     color: var(--primary);
@@ -173,10 +187,10 @@
 
   .search-input:hover {
     cursor: pointer;
-    box-shadow: 2px 2px 0 0 var(--secondary);
-    transform: translate(-1px, -1px);
     background-color: var(--surface);
-    transition: border-width 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+    box-shadow: 0px 0px 0px 1px var(--secondary);
+    transition:
+      box-shadow 0.1s ease-in-out,
   }
 
   .search-input:focus {
@@ -189,7 +203,7 @@
     top: 100%;
     /* left: 0; */
     right: 0;
-    width:100%;
+    width: 100%;
     min-width: 320px;
     background: var(--surface);
     border: 1px solid var(--secondary);

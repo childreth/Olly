@@ -360,18 +360,22 @@
   .providers-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0;
+    margin-bottom:3rem;
   }
   
   .provider-card {
     border-bottom: 1px solid var(--tertiary);
-    padding: 1rem;
+    padding: 1rem 1rem 1.5rem;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
     background-color: var(--surface);
+  }
+  .provider-card:last-child {
+    border-bottom: none;
   }
   
   .provider-header {

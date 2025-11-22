@@ -731,7 +731,7 @@
 </div>
 
 <header id="title">
-  <div class='left'>
+  <div class='leftCol'>
  
     <div id="weather">
       <span class="weather-icon"></span>
@@ -742,12 +742,8 @@
     <span>|</span>
     <Button label="Settings" type="link" on:click={Utils.openSettings} />
   </div>
-
- 
-  <!-- <button on:click={confirmDialog}>Show Dialog</button> -->
   <h1>Olly</h1>
-  <!-- <button class="basic" on:click={Utils.toggleTheme}>Test it</button> -->
-  <div class="input-vertical">
+  <div class="rightCol">
     <label for="model-select" class="visualhide">Choose a model:</label>
     <SearchableSelect 
       options={allModels}
