@@ -331,7 +331,7 @@ export function initTheme() {
       console.error('Error fetching weather data:', error);
       const theWeather = document.querySelector("#weather .weather-report");
       if (theWeather) {
-        theWeather.textContent = 'Current weather unavailable.'
+        theWeather.textContent = 'Weather unavailable'
       }
     }
 
