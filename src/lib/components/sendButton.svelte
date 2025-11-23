@@ -60,7 +60,7 @@
     background: conic-gradient(
       from var(--angle) at 50% 50%,
       var(--primary) 0% 30%,
-      var(--surface) 70% 100%
+      var(--surface-2) 70% 100%
     );
     animation: spin 1s linear infinite;
     transition: background 0.3s ease-in-out;
@@ -85,7 +85,7 @@
     min-height: 2.5rem;
     min-width: 8.25ch;
     /* min-width: 10ch; */
-    color: var(--surface);
+    color: var(--surface-2);
     font-size: 1.25rem;
     font-weight: 700;
     line-height: 2.75rem;
@@ -99,7 +99,7 @@
     transition: transform 0.2s ease-in-out;
   }
   #buttonWrap:has(button:focus-visible) {
-    box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--primary);
+    box-shadow: 0 0 0 3px var(--surface-2), 0 0 0 6px var(--primary);
     border-radius: 12rem;
   }
   button:focus-visible {
@@ -111,19 +111,16 @@
     height: 20px;
  
   }
-  #buttonWrap button :global(svg) {
-    transition: transform 0.2s ease-in-out;
-  } 
-
   #buttonWrap:hover button :global(svg) {
     /* transform: translateY(-2px) translateX(0px); */
+    transition: transform 0.2s ease-in-out;
   }
 
   #buttonWrap button#stopBtn {
-    background: var(--surface);
+    background: var(--surface-2);
     background-image: none;
 
-    /* background: var(--surface) url("$lib/images/stop.svg") no-repeat 0.75rem 50%; */
+    /* background: var(--surface-2) url("$lib/images/stop.svg") no-repeat 0.75rem 50%; */
     color: var(--primary);
   }
   #buttonWrap:hover button#stopBtn {

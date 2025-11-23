@@ -187,7 +187,7 @@
 
   .search-input:hover {
     cursor: pointer;
-    background-color: var(--surface);
+    background-color: var(--surface-2);
     box-shadow: 0px 0px 0px 1px var(--secondary);
     transition:
       box-shadow 0.1s ease-in-out,
@@ -205,7 +205,7 @@
     right: 0;
     width: 100%;
     min-width: 320px;
-    background: var(--surface);
+    background: var(--surface-2);
     border: 1px solid var(--secondary);
     border-radius: 1rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);

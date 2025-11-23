@@ -335,7 +335,7 @@
     z-index: 1;
     padding:  0.5rem;
     border-radius: var(--borderRadiusXS);
-    background-color: var(--surface);
+    background-color: var(--surface-2);
     font-size: var(--fontSizeSmall);
   }
   
@@ -372,7 +372,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
-    background-color: var(--surface);
+    background-color: var(--surface-2);
   }
   .provider-card:last-child {
     border-bottom: none;

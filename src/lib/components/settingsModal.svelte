@@ -197,11 +197,15 @@
 </script>
 
 {#if isOpen}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div class="modal-overlay" on:click={closeModal}>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div class="modal-content" on:click|stopPropagation>
       <div class="modal-header">
         <h2>API Key Settings</h2>
-        <button class="close-btn" on:click={closeModal}></button>
+        <button class="close-btn" aria-label="Close settings" on:click={closeModal}></button>
       </div>
       
       <div class="modal-body">
@@ -306,7 +310,7 @@
   }
   
   .modal-content {
-    background-color: var(--surface);
+    background-color: var(--surface-2);
     border-radius: var(--borderRadiusS);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     width: 90%;
@@ -403,7 +407,7 @@
     padding: 0.75rem;
     border: 1px solid var(--secondary);
     border-radius: var(--borderRadiusXS);
-    background-color: var(--surface);
+    background-color: var(--surface-2);
     color: var(--primary);
     font-family: var(--bodyFamily);
   }

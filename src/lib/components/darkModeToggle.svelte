@@ -66,7 +66,7 @@
     position: relative;
     width: 36px;
     height: 16px;
-    background-color: var(--surface);
+    background-color: var(--surface-2);
     border: 2px solid var(--secondary);
     border-radius: 12px;
     transition: background-color 0.3s;
@@ -87,13 +87,13 @@
   }
 
   input[type="checkbox"]:checked + .toggle-switch {
-    background-color: var(--surface);
+    background-color: var(--surface-2);
   }
 
   input[type="checkbox"]:checked + .toggle-switch::after {
     transform: translateX(20px);
     background-color: var(--primary);
-    border-color: var(--surface);
+    border-color: var(--surface-2);
   }
 
   .toggle-label {

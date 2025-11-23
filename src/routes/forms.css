@@ -25,7 +25,7 @@
     font-size: var(--fontSizeSmall);
     border: 1px solid var(--secondary);
     border-radius: var(--borderRadiusXS);
-    background-color: var(--surface);
+    background-color: var(--surface-2);
     color: var(--primary);
     font-family: var(--bodyFamily);
     box-sizing: border-box;

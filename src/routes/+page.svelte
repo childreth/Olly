@@ -4,6 +4,7 @@
   import { Ollama } from "ollama/browser";
   import { onMount } from "svelte";
   import { marked } from "marked";
+  import { fly } from "svelte/transition";
   import * as Utils from "$lib/utils.js";
   import SendButton from "$lib/components/sendButton.svelte";
   import Button from "$lib/components/button.svelte";
@@ -37,17 +38,7 @@
   let userMsg = "tell me a dad joke";
   let lastChatResponse = "";
   let streamedGreeting = "";
-  $: responseMarked = (() => {
-    if (!streamedGreeting) return '';
-
-    let parsed = marked.parse(streamedGreeting);
-
-    // Post-process: wrap any unwrapped text nodes in <p> tags
-    // Match text that's not already inside HTML tags at the start
-    parsed = parsed.replace(/^([^<][^\n]*?)(<|$)/m, '<p>$1</p>$2');
-
-    return parsed;
-  })();
+  let responseMarked = "";
   let chatConvo = [];
   let tokenSpeed = 0;
   let tokenCount = 0;
@@ -195,11 +186,13 @@
       const content = event.payload;
       streamedGreeting += content;
       lastChatResponse += content;
+      responseMarked = marked.parse(streamedGreeting);
     });
-    
+
     appWindow.listen('claude-stream-done', (event) => {
       console.log("Claude streaming completed");
       isStreaming = false;
+      responseMarked = marked.parse(streamedGreeting);
       Utils.addCopyButtonToPre();
     });
 
@@ -208,12 +201,13 @@
       const content = event.payload;
       streamedGreeting += content;
       lastChatResponse += content;
+      responseMarked = marked.parse(streamedGreeting);
     });
-    
+
     appWindow.listen('perplexity-stream-done', (event) => {
       console.log("Perplexity streaming completed");
       const data = event.payload;
-      
+
       // Add citations if present
       if (data.citations && data.citations.length > 0) {
         let citationsHtml = '\n\n---\n\n### References\n\n';
@@ -223,8 +217,9 @@
         streamedGreeting += citationsHtml;
         lastChatResponse += citationsHtml;
       }
-      
+
       isStreaming = false;
+      responseMarked = marked.parse(streamedGreeting);
       Utils.addCopyButtonToPre();
     });
     
@@ -232,7 +227,13 @@
     if (typeof window !== 'undefined' && window.feather) {
       window.feather.replace();
     }
-    
+
+    // Add scroll listener to chat container
+    const chatContainer = document.querySelector("#chat-container");
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll);
+    }
+
     //callOllama()
   });
 
@@ -533,17 +534,34 @@
   }
 
   async function callOllama() {
-    
+    // Reset scroll override for new message
+    userScrolledUp = false;
+
     userMsg = document.querySelector("#prompt").textContent || "";
+    const messageId = Date.now(); // Unique ID for this message
 
     //add user message to the top of the chat
-    streamedGreeting += `<h2 class="userMsg"> <span>${userMsg}</span>` +
+    streamedGreeting += `<h2 class="userMsg" data-msg-id="${messageId}"> <span>${userMsg}</span>` +
       `${theThumbnail ? `<img src="${theThumbnail}" alt="User uploaded image">` : ""}
       </h2>`;
 
 
     streamedGreeting += `<p><small><strong>${selectedModel}</strong></small></p>`;
     streamedGreeting += "\n\n";
+
+    // Update responseMarked immediately so user sees their message
+    responseMarked = marked.parse(streamedGreeting);
+
+    // Apply animation only to the new message, once
+    requestAnimationFrame(() => {
+      const newMsg = document.querySelector(`[data-msg-id="${messageId}"]`);
+      if (newMsg) {
+        newMsg.classList.add('animate-in');
+        // Auto-scroll to the new user message
+        newMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
     document.querySelector("#prompt").textContent = "";
     document.querySelector("#thumbnails").innerHTML = "";
 
@@ -614,6 +632,7 @@
           }
           streamedGreeting += part.message.content;
           lastChatResponse += part.message.content;
+          responseMarked = marked.parse(streamedGreeting);
           //looks for end of stream
           if (part.eval_count) {
             tokenCount = Number(part.eval_count);
@@ -631,6 +650,7 @@
         }
       } finally {
         isStreaming = false;
+        responseMarked = marked.parse(streamedGreeting);
         Utils.addCopyButtonToPre();
         //streamedGreeting += ``;
       }
@@ -641,11 +661,18 @@
   }
 
   let scrollScheduled = false;
+  let userScrolledUp = false;
+  let showScrollButton = false;
+  let scrollCheckTimeout = null;
 
   function autoScroll() {
     const chatContainer = document.querySelector("#chat-container");
     if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
+      // Use instant scroll during streaming for better performance
+      chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior: isStreaming ? 'instant' : 'smooth'
+      });
     }
     scrollScheduled = false;
   }
@@ -657,9 +684,51 @@
     }
   }
 
-  $: if (streamedGreeting) {
-    // Use requestAnimationFrame for smoother scrolling
-    scheduleScroll();
+  function handleScroll(event) {
+    const chatContainer = event.target;
+    const scrollBottom = chatContainer.scrollHeight - chatContainer.scrollTop;
+    const isAtBottom = scrollBottom <= chatContainer.clientHeight + 150;
+    const hasOverflow = chatContainer.scrollHeight > chatContainer.clientHeight;
+
+    // Debounce button visibility to prevent flickering
+    if (scrollCheckTimeout) {
+      clearTimeout(scrollCheckTimeout);
+    }
+
+    scrollCheckTimeout = setTimeout(() => {
+      showScrollButton = hasOverflow && !isAtBottom;
+    }, 100);
+
+    // Track if user is scrolled up during streaming
+    if (isStreaming && !isAtBottom) {
+      userScrolledUp = true;
+    } else if (isAtBottom) {
+      userScrolledUp = false;
+    }
+  }
+
+  // Don't auto-scroll anymore - user controls scrolling manually
+  // $: if (responseMarked && !isStreaming) {
+  //   scheduleScroll();
+  // }
+
+  // Update button visibility when content changes (debounced)
+  $: if (responseMarked) {
+    if (scrollCheckTimeout) {
+      clearTimeout(scrollCheckTimeout);
+    }
+
+    scrollCheckTimeout = setTimeout(() => {
+      requestAnimationFrame(() => {
+        const chatContainer = document.querySelector("#chat-container");
+        if (chatContainer) {
+          const scrollBottom = chatContainer.scrollHeight - chatContainer.scrollTop;
+          const isAtBottom = scrollBottom <= chatContainer.clientHeight + 150;
+          const hasOverflow = chatContainer.scrollHeight > chatContainer.clientHeight;
+          showScrollButton = hasOverflow && !isAtBottom;
+        }
+      });
+    }, 100);
   }
 
   function changeModel() {
@@ -760,7 +829,27 @@
     <section id="" class="response" aria-live="polite" role="log">
       {@html responseMarked}
     </section>
-    
+
+    {#if showScrollButton}
+      <button
+        class="scroll-to-bottom scroll-button-enter"
+        aria-label="Scroll to bottom of chat"
+        in:fly={{ y: 4, duration: 200 }}
+        out:fly={{ y: 4, duration: 200 }}
+        on:click={() => {
+        const chatContainer = document.querySelector("#chat-container");
+        if (chatContainer) {
+          chatContainer.scrollTo({
+            top: chatContainer.scrollHeight,
+            behavior: 'smooth'
+          });
+          userScrolledUp = false;
+          showScrollButton = false;
+        }
+      }}>
+       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-down"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+      </button>
+    {/if}
   </div>
  
 
