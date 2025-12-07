@@ -175,13 +175,35 @@ export async function getIcon(weather) {
     const content = response.message.content.trim();
     let parsedContent;
 
-    // Try to parse as JSON
-    parsedContent = JSON.parse(content);
+    // First check if it's a plain string that matches a valid icon
+    const validIcons = [
+      "clear_night", "cloudy_night", "partly_cloudy_night", "clear_foggy", "foggy",
+      "clear_sunny", "mostly_sunny", "partly_sunny", "rain",
+      "snow", "thunderstorms", "windy", "sad_face"
+    ];
 
-    // If it's an object with iconName property, use that; otherwise treat it as the icon name directly
-    iconName = typeof parsedContent === 'object' && parsedContent.iconName
-      ? parsedContent.iconName
-      : parsedContent;
+    // Clean up the content - remove quotes, newlines, etc.
+    const cleanedContent = content.replace(/["\n\r]/g, '').trim();
+
+    // Check if it's directly a valid icon name
+    if (validIcons.includes(cleanedContent)) {
+      iconName = cleanedContent;
+    } else {
+      // Try to parse as JSON
+      try {
+        parsedContent = JSON.parse(content);
+        // If it's an object with iconName property, use that; otherwise treat it as the icon name directly
+        iconName = typeof parsedContent === 'object' && parsedContent.iconName
+          ? parsedContent.iconName
+          : parsedContent;
+      } catch (jsonError) {
+        // Not valid JSON and not a valid icon name directly
+        console.warn(`Unable to parse response as JSON, trying to extract icon name from: "${content}"`);
+        // Try to find a valid icon name within the response
+        const foundIcon = validIcons.find(icon => content.toLowerCase().includes(icon));
+        iconName = foundIcon || 'sad_face';
+      }
+    }
 
     // Validate that iconName is a string
     if (typeof iconName !== 'string') {
@@ -189,18 +211,13 @@ export async function getIcon(weather) {
       return 'sad_face.svg';
     }
 
-    // Whitelist validation for expected icon names
-    const validIcons = [
-      "clear_night", "cloudy_night", "partly_cloudy_night", "clear_foggy", "foggy",
-      "clear_sunny", "mostly_sunny", "partly_sunny", "rain",
-      "snow", "thunderstorms", "windy", "sad_face"
-    ];
+    // Final validation
     if (!validIcons.includes(iconName)) {
       console.warn(`iconName "${iconName}" not valid, falling back to sad_face`);
       iconName = 'sad_face';
     }
   } catch (error) {
-    console.warn('getIcon fallback, unable to parse/validate JSON:', error);
+    console.warn('getIcon fallback, unable to parse/validate response:', error);
     return 'sad_face.svg'; // Fallback to existing icon
   }
   console.log('weather: ', weather, 'iconName:', iconName)
