@@ -8,16 +8,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1", features = [] }
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "1", features = [ "window-unminimize", "window-show", "window-unmaximize", "window-start-dragging", "window-minimize", "window-hide", "window-close", "window-maximize", "macos-private-api", "http-all", "os-all", "app-all", "dialog-all", "shell-open"] }
+tauri = { version = "2", features = [ "macos-private-api"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
 objc = "0.2.7"
 cocoa = "0.24"
-reqwest = { version = "0.11", features = ["json", "native-tls-vendored"] }
+reqwest = { version = "0.11", features = ["json", "native-tls-vendored", "stream"] }
 tokio = { version = "1.0", features = ["full"] }
 dotenvy = "0.15"
 log = "0.4"
@@ -26,6 +26,10 @@ futures-util = "0.3"
 keyring = "3.2"
 crossbeam-channel = "0.5.15"
 idna = "1.0.0"
+tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-http = "2"
+tauri-plugin-os = "2"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

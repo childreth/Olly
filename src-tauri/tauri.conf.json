@@ -2,61 +2,33 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../build"
+    "frontendDist": "../build",
+    "devUrl": "http://localhost:1420"
   },
-  "package": {
-    "productName": "olly",
-    "version": "0.1.0"
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app"
+    ],
+    "resources": [
+      "Config.toml",
+      "../.env"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
   },
-  "tauri": {
-    "allowlist": {
-      "shell": {
-        "all": false,
-        "open": true
-      },
-      "dialog": {
-        "all": true,
-        "ask": true,
-        "confirm": true,
-        "message": true,
-        "open": true,
-        "save": true
-      },
-      "app": {
-        "all": true,
-        "show": true,
-        "hide": true
-      },
-      "os": {
-        "all": true
-      },
-      "http": {
-        "scope": [
-          "https://rickandmortyapi.com/**",
-          "https://api.anthropic.com/**",
-          "https://api.perplexity.ai/**",
-          "https://api.openai.com/**",
-          "https://api.weather.gov/**",
-          "https://nominatim.openstreetmap.org/**",
-          "http://**",
-          "https://**"
-        ],
-        "all": true,
-        "request": true
-      },
-      "window": {
-        "all": false,
-        "close": true,
-        "hide": true,
-        "show": true,
-        "maximize": true,
-        "minimize": true,
-        "unmaximize": true,
-        "unminimize": true,
-        "startDragging": true
-      }
-    },
+  "productName": "olly",
+  "mainBinaryName": "olly",
+  "version": "0.1.0",
+  "identifier": "com.olly.app",
+  "plugins": {},
+  "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "",
@@ -64,30 +36,12 @@
         "height": 600,
         "decorations": true,
         "transparent": true,
-        "titleBarStyle": "Overlay"
+        "titleBarStyle": "Overlay",
+        "useHttpsScheme": true
       }
     ],
     "security": {
       "csp": null
-    },
-    "macOSPrivateApi": true,
-    "bundle": {
-      "active": true,
-      "targets": [
-        "app"
-      ],
-      "identifier": "com.olly.app",
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "resources": [
-        "Config.toml",
-        "../.env"
-      ]
     }
   }
 }
