@@ -1085,15 +1085,21 @@ fn main() {
             // Load .env from resources in production
             #[cfg(not(debug_assertions))]
             {
-                if let Some(resource_path) = app.path_resolver().resolve_resource("../.env") {
-                    info!("Loading .env from resource path: {:?}", resource_path);
-                    if let Err(e) = dotenvy::from_path(&resource_path) {
-                        error!("Failed to load .env from resource path: {}", e);
-                    } else {
-                        info!("Successfully loaded .env from resource path");
+                use tauri::Manager;
+                // In Tauri v2, use path().resolve() instead of path_resolver()
+                match app.path().resource_dir() {
+                    Ok(resource_dir) => {
+                        let env_path = resource_dir.join("../.env");
+                        info!("Loading .env from resource path: {:?}", env_path);
+                        if let Err(e) = dotenvy::from_path(&env_path) {
+                            error!("Failed to load .env from resource path: {}", e);
+                        } else {
+                            info!("Successfully loaded .env from resource path");
+                        }
                     }
-                } else {
-                    error!("Failed to resolve .env resource path");
+                    Err(e) => {
+                        error!("Failed to resolve resource directory: {}", e);
+                    }
                 }
             }
 
