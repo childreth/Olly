@@ -6,6 +6,7 @@
   import { marked } from "marked";
   import { fly } from "svelte/transition";
   import * as Utils from "$lib/utils.js";
+  import { tools, executeTool, supportsToolCalling } from "$lib/tools.js";
   import SendButton from "$lib/components/sendButton.svelte";
   import Button from "$lib/components/button.svelte";
   import Select from "$lib/components/select.svelte";
@@ -14,15 +15,14 @@
   import Toast from "$lib/components/toast.svelte";
   import SearchableSelect from "$lib/components/searchableSelect.svelte";
   import TabbedModelManager from "$lib/components/tabbedModelManager.svelte";
-  import CalendarSummary from "$lib/components/CalendarSummary.svelte";
-  import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  
 
-  import { open } from "@tauri-apps/plugin-dialog";
-  import { confirm } from "@tauri-apps/plugin-dialog";
+  import { open, confirm } from "@tauri-apps/plugin-dialog";
 
   import { fetch } from "@tauri-apps/plugin-http";
-  const appWindow = getCurrentWebviewWindow();
   // Use this to get the environment variable
+
 
   //basic API call for testing tools
   const API_URL = "https://rickandmortyapi.com/api/episode";
@@ -30,7 +30,7 @@
   let selectedModelOption = null;
   let activeModel = "";
   let result = "";
-  let theImage = [];
+  let theImage= [];
   let theThumbnail = "";
   let imageMediaType = "";
   let isProcessingImage = false;
@@ -47,36 +47,33 @@
   let loadModelNames = [];
   let allModels = [
     // Initialize with the currently selected model so it shows in dropdown immediately
-    {
-      id: "smollm2:1.7b",
-      name: "smollm2:1.7b",
-      description: "Loading models...",
-      provider: "ollama",
-    },
+    { id: "smollm2:1.7b", name: "smollm2:1.7b", description: "Loading models...", provider: "ollama" }
   ];
   let isStreaming = false;
   let abortController = new AbortController();
   const ollama = new Ollama({ host: "http://localhost:11434" });
+  const appWindow = getCurrentWindow();
 
   let darkMode = false;
   let themeColor = "#000099"; // default color
-
+  
   // Toast notification state
   let toastVisible = false;
   let toastMessage = "";
   let toastType = "info";
 
-  //very basic system prompt to test speed vs terimal interface
+//very basic system prompt to test speed vs terimal interface
   const systemMsg = `You are a helpful assistant and like really responsing with emojies. You job will be to help write better content for the user. Always return markdown formatted responses.`;
 
+  
   onMount(async () => {
-    console.log("=== APP MOUNTED ===");
+    console.log('=== APP MOUNTED ===');
 
     // Configure marked for proper markdown rendering
     marked.setOptions({
       breaks: true,
       gfm: true,
-      pedantic: false,
+      pedantic: false
     });
 
     // Listen for API key migration events
@@ -86,7 +83,7 @@
       toastVisible = true;
     });
 
-    const savedColor = localStorage.getItem("themeColor");
+    const savedColor = localStorage.getItem('themeColor');
     if (savedColor) {
       themeColor = savedColor;
       const hexToHSL = (hex) => {
@@ -106,38 +103,37 @@
         if (h < 0) h += 360;
         return h;
       };
-      document.documentElement.style.setProperty(
-        "--hue",
-        hexToHSL(savedColor).toString(),
-      );
+      document.documentElement.style.setProperty("--hue", hexToHSL(savedColor).toString());
     }
 
     const sendBtn = document.querySelector("#sendBtn");
     const imagePreview = document.querySelector("#thumbnails");
     const prompt = document.querySelector("#prompt");
-    const apiKey = await invoke("get_env", { name: "CLAUDE_API_KEY" });
+    const apiKey = await invoke('get_env', { name: 'CLAUDE_API_KEY' });
+
+
 
     Utils.getCoordinates(city);
 
     // Test Ollama command directly
     try {
-      console.log("=== TESTING get_ollama_models COMMAND ===");
+      console.log('=== TESTING get_ollama_models COMMAND ===');
       const testModels = await invoke("get_ollama_models");
-      console.log("Direct test result:", testModels);
+      console.log('Direct test result:', testModels);
     } catch (error) {
-      console.error("Direct test failed:", error);
+      console.error('Direct test failed:', error);
     }
 
-    console.log("=== CALLING loadModels() ===");
+    console.log('=== CALLING loadModels() ===');
     await loadModels();
-    console.log("=== loadModels() COMPLETE ===");
-    console.log("Final allModels array:", allModels);
+    console.log('=== loadModels() COMPLETE ===');
+    console.log('Final allModels array:', allModels);
 
     const fileInput = document.querySelector("#file");
 
     prompt.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        callOllama();
+        callOllama()
       }
     });
 
@@ -165,7 +161,7 @@
         console.log("Image compressed and ready:", {
           originalSize: file.size,
           compressedSize: compressed.base64.length,
-          mediaType: compressed.mediaType,
+          mediaType: compressed.mediaType
         });
       } catch (error) {
         console.error("Error processing image:", error);
@@ -185,16 +181,16 @@
     // document
     //   .getElementById("titlebar-close")
     //   .addEventListener("click", () => appWindow.close());
-
+    
     // Claude streaming event listeners
-    appWindow.listen("claude-stream", (event) => {
+    appWindow.listen('claude-stream', (event) => {
       const content = event.payload;
       streamedGreeting += content;
       lastChatResponse += content;
       responseMarked = marked.parse(streamedGreeting);
     });
 
-    appWindow.listen("claude-stream-done", (event) => {
+    appWindow.listen('claude-stream-done', (event) => {
       console.log("Claude streaming completed");
       isStreaming = false;
       responseMarked = marked.parse(streamedGreeting);
@@ -202,25 +198,23 @@
     });
 
     // Perplexity streaming event listeners
-    appWindow.listen("perplexity-stream", (event) => {
+    appWindow.listen('perplexity-stream', (event) => {
       const content = event.payload;
       streamedGreeting += content;
       lastChatResponse += content;
       responseMarked = marked.parse(streamedGreeting);
     });
 
-    appWindow.listen("perplexity-stream-done", (event) => {
+    appWindow.listen('perplexity-stream-done', (event) => {
       console.log("Perplexity streaming completed");
       const data = event.payload;
 
       // Add citations if present
       if (data.citations && data.citations.length > 0) {
-        let citationsHtml = "\n\n---\n\n### References\n\n";
-        data.citations.forEach(
-          (/** @type {string} */ url, /** @type {number} */ index) => {
-            citationsHtml += `${index + 1}. [${url}](${url})\n`;
-          },
-        );
+        let citationsHtml = '\n\n---\n\n### References\n\n';
+        data.citations.forEach((/** @type {string} */ url, /** @type {number} */ index) => {
+          citationsHtml += `${index + 1}. [${url}](${url})\n`;
+        });
         streamedGreeting += citationsHtml;
         lastChatResponse += citationsHtml;
       }
@@ -229,16 +223,16 @@
       responseMarked = marked.parse(streamedGreeting);
       Utils.addCopyButtonToPre();
     });
-
+    
     // Initialize feather icons
-    if (typeof window !== "undefined" && window.feather) {
+    if (typeof window !== 'undefined' && window.feather) {
       window.feather.replace();
     }
 
     // Add scroll listener to chat container
     const chatContainer = document.querySelector("#chat-container");
     if (chatContainer) {
-      chatContainer.addEventListener("scroll", handleScroll);
+      chatContainer.addEventListener('scroll', handleScroll);
     }
 
     //callOllama()
@@ -246,10 +240,10 @@
 
   async function rickAndMorty() {
     const response = await fetch(API_URL, {
-      method: "GET",
-      timeout: 30,
+      method: "GET"
     });
-    console.log("response", response);
+    const data = await response.json();
+    console.log("response", data);
   }
   // Open a selection dialog for image files
   async function showDialog() {
@@ -302,21 +296,21 @@
           let content = [];
 
           // Add images first
-          theImage.forEach((base64Data) => {
+          theImage.forEach(base64Data => {
             content.push({
               type: "image",
               source: {
                 type: "base64",
                 media_type: imageMediaType || "image/jpeg",
-                data: base64Data,
-              },
+                data: base64Data
+              }
             });
           });
 
           // Add text content
           content.push({
             type: "text",
-            text: userMsg,
+            text: userMsg
           });
 
           claudeMessages = [{ role: "user", content: content }];
@@ -326,48 +320,46 @@
         }
       } else {
         // Build full conversation history from chatConvo
-        claudeMessages = chatConvo
-          .filter((msg) => msg.role !== "system")
-          .map((msg) => {
-            // Convert stored messages to proper format
-            if (msg.images && msg.images.length > 0) {
-              let content = [];
-              msg.images.forEach((base64Data) => {
-                content.push({
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: imageMediaType || "image/jpeg",
-                    data: base64Data,
-                  },
-                });
-              });
+        claudeMessages = chatConvo.filter(msg => msg.role !== "system").map(msg => {
+          // Convert stored messages to proper format
+          if (msg.images && msg.images.length > 0) {
+            let content = [];
+            msg.images.forEach(base64Data => {
               content.push({
-                type: "text",
-                text: msg.content,
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: imageMediaType || "image/jpeg",
+                  data: base64Data
+                }
               });
-              return { role: msg.role, content: content };
-            } else {
-              return { role: msg.role, content: msg.content };
-            }
-          });
+            });
+            content.push({
+              type: "text",
+              text: msg.content
+            });
+            return { role: msg.role, content: content };
+          } else {
+            return { role: msg.role, content: msg.content };
+          }
+        });
 
         // Add current user message with images if present
         if (theImage.length > 0) {
           let content = [];
-          theImage.forEach((base64Data) => {
+          theImage.forEach(base64Data => {
             content.push({
               type: "image",
               source: {
                 type: "base64",
                 media_type: imageMediaType || "image/jpeg",
-                data: base64Data,
-              },
+                data: base64Data
+              }
             });
           });
           content.push({
             type: "text",
-            text: userMsg,
+            text: userMsg
           });
           claudeMessages.push({ role: "user", content: content });
         } else {
@@ -375,10 +367,10 @@
         }
       }
 
-      await invoke("stream_claude", {
+      await invoke('stream_claude', {
         model: selectedModel,
         prompt: userMsg,
-        messages: claudeMessages,
+        messages: claudeMessages
       });
     } catch (error) {
       console.error(error);
@@ -386,8 +378,7 @@
 
       // Show error to user
       if (error.includes("API key not found")) {
-        toastMessage =
-          "Claude API key not found. Please add it in Settings → API Settings.";
+        toastMessage = "Claude API key not found. Please add it in Settings → API Settings.";
         toastType = "error";
         toastVisible = true;
       } else {
@@ -402,18 +393,17 @@
     try {
       isStreaming = true;
       lastChatResponse = "";
-      await invoke("stream_perplexity", {
+      await invoke('stream_perplexity', {
         model: selectedModel,
-        prompt: userMsg,
+        prompt: userMsg
       });
     } catch (error) {
       console.error(error);
       isStreaming = false;
-
+      
       // Show error to user
       if (error.includes("API key not found")) {
-        toastMessage =
-          "Perplexity API key not found. Please add it in Settings → API Settings.";
+        toastMessage = "Perplexity API key not found. Please add it in Settings → API Settings.";
         toastType = "error";
         toastVisible = true;
       } else {
@@ -424,13 +414,16 @@
     }
   }
 
+
+
+
   async function loadModels() {
     try {
       // Get all models from backend (don't fail if this errors)
       let backendModels = [];
       try {
         backendModels = await invoke("get_all_models");
-        console.log("Backend models:", backendModels);
+        console.log('Backend models:', backendModels);
       } catch (error) {
         console.warn("Failed to get backend models:", error);
       }
@@ -438,9 +431,9 @@
       // Get Ollama models if available
       let ollamaModels = [];
       try {
-        console.log("Attempting to fetch Ollama models from backend...");
+        console.log('Attempting to fetch Ollama models from backend...');
         ollamaModels = await invoke("get_ollama_models");
-        console.log("Ollama models response:", ollamaModels);
+        console.log('Ollama models response:', ollamaModels);
 
         if (ollamaModels && ollamaModels.length > 0) {
           // Keep old format for settings display
@@ -448,13 +441,11 @@
             model.name,
             model.details?.modified_at || "Unknown",
             model.details?.parameter_size || "Unknown",
-            model.details?.quantization_level || "Unknown",
+            model.details?.quantization_level || "Unknown"
           ]);
-          console.log(
-            `Successfully loaded ${ollamaModels.length} Ollama models`,
-          );
+          console.log(`Successfully loaded ${ollamaModels.length} Ollama models`);
         } else {
-          console.warn("Ollama returned empty models list");
+          console.warn('Ollama returned empty models list');
           loadModelNames = [];
         }
       } catch (error) {
@@ -462,126 +453,84 @@
         loadModelNames = [];
       }
 
-      // Get Claude models via secure backend call (no API key exposed to frontend)
+      // Get Claude models if API key is available
       let claudeModels = [];
       let claudeApiSuccess = false;
       try {
-        console.log("Fetching Claude models via backend...");
-        const backendClaudeModels = await invoke("get_claude_models");
-        console.log("Claude models from backend:", backendClaudeModels);
+        const claudeApiKey = await invoke("get_api_key", { provider: "claude" });
+        if (claudeApiKey) {
+          const claudeResponse = await fetch('https://api.anthropic.com/v1/models?limit=5', {
+            method: 'GET',
+            headers: {
+              'x-api-key': claudeApiKey,
+              'anthropic-version': '2023-06-01'
+            }
+          });
 
-        if (backendClaudeModels && backendClaudeModels.length > 0) {
-          claudeModels = backendClaudeModels;
-          // Add to old format for settings display
-          const claudeModelNames = backendClaudeModels.map((model) => [
-            model.name || model.id,
-            "Not local - External API",
-            "N/A",
-            "N/A",
-          ]);
-          loadModelNames.push(...claudeModelNames);
-          claudeApiSuccess = true;
-          console.log(
-            "Successfully loaded Claude models via backend:",
-            claudeModels,
-          );
-        } else {
-          console.log(
-            "No Claude models returned from backend (API key may not be set)",
-          );
+          if (claudeResponse.ok) {
+            const claudeData = claudeResponse.data;
+            claudeModels = claudeData.data.map(model => ({
+              id: model.id,
+              name: model.display_name || model.id,
+              description: "Claude API model",
+              provider: "claude"
+            }));
+            // Add to old format for settings display
+            const claudeModelNames = claudeData.data.map(model => [
+              model.display_name || model.id,
+              "Not local - External API",
+              "N/A",
+              "N/A"
+            ]);
+            loadModelNames.push(...claudeModelNames);
+            claudeApiSuccess = true;
+          }
         }
       } catch (error) {
-        console.warn("Failed to fetch Claude models from backend:", error);
+        console.warn("Claude API not available:", error);
       }
 
       // Add external API models to old format for settings (keeping fallback)
-      loadModelNames.unshift([
-        "Fal - Flux",
-        "Not local - External API",
-        "N/A",
-        "N/A",
-      ]);
+      loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"]);
       if (!claudeApiSuccess) {
-        console.log("No Claude models found via API, adding fallback");
-        loadModelNames.unshift([
-          "Claude 3.5 Sonnet",
-          "Not local - External API",
-          "N/A",
-          "N/A",
-        ]);
-        // Also add to allModels so it appears in the select
-        allModels.push({
-          id: "claude-3-5-sonnet-20240620",
-          name: "Claude 3.5 Sonnet",
-          description: "Fallback Claude model",
-          provider: "claude",
-        });
+        console.log('No Claude models found, adding fallback');
+        loadModelNames.unshift(["Claude 3.5 Sonnet","Not local - External API","N/A","N/A"]);
       }
-      loadModelNames.push(
-        ...backendModels
-          .filter((m) => m.provider === "perplexity")
-          .map((m) => [m.name, "Not local - External API", "N/A", "N/A"]),
-      );
+      loadModelNames.push(...backendModels.filter(m => m.provider === "perplexity").map(m => [m.name, "Not local - External API", "N/A", "N/A"]));
 
       // Combine all models for the searchable select
       allModels = [...backendModels, ...ollamaModels, ...claudeModels];
-      console.log("All models combined:", allModels);
-      console.log("Total models loaded:", allModels.length);
+      console.log('All models combined:', allModels);
+      console.log('Total models loaded:', allModels.length);
 
       // If no models were loaded at all, use fallback
       if (allModels.length === 0) {
-        console.warn("No models loaded from any provider, using fallback");
+        console.warn('No models loaded from any provider, using fallback');
         allModels = [
-          {
-            id: "claude-3-7-sonnet-20250219",
-            name: "Claude 3.7 Sonnet",
-            description: "Most capable Claude model",
-            provider: "claude",
-          },
-          {
-            id: "fal-flux",
-            name: "Fal - Flux",
-            description: "Image generation model",
-            provider: "fal",
-          },
-          {
-            id: "sonar-pro",
-            name: "Sonar Pro",
-            description: "Perplexity search model",
-            provider: "perplexity",
-          },
+          { id: "claude-3-7-sonnet-20250219", name: "Claude 3.7 Sonnet", description: "Most capable Claude model", provider: "claude" },
+          { id: "fal-flux", name: "Fal - Flux", description: "Image generation model", provider: "fal" },
+          { id: "sonar-pro", name: "Sonar Pro", description: "Perplexity search model", provider: "perplexity" }
         ];
       }
+
     } catch (error) {
       console.error("Failed to load models:", error);
       // Fallback models
-      loadModelNames = [
-        ["Fal - Flux", "Not local - External API", "N/A", "N/A"],
-        ["Claude 3.5 Sonnet", "Not local - External API", "N/A", "N/A"],
-      ];
+      loadModelNames = [["Fal - Flux","Not local - External API","N/A","N/A"],["Claude 3.5 Sonnet","Not local - External API","N/A","N/A"]];
       allModels = [
-        {
-          id: "claude-3.5-sonnet",
-          name: "Claude 3.5 Sonnet",
-          description: "Most capable Claude model",
-          provider: "claude",
-        },
-        {
-          id: "fal-flux",
-          name: "Fal - Flux",
-          description: "Image generation model",
-          provider: "fal",
-        },
+        { id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet", description: "Most capable Claude model", provider: "claude" },
+        { id: "fal-flux", name: "Fal - Flux", description: "Image generation model", provider: "fal" }
       ];
     }
   }
 
   async function deleteModel(model) {
     const ollama = new Ollama({ host: "http://localhost:11434" });
-    let processing = ollama.ps();
+    let processing = ollama.ps()
     let models = await ollama.delete({ model: model });
     console.log("deleteModel:", processing);
-    loadModels();
+    loadModels()
+    
   }
 
   async function callOllama() {
@@ -592,10 +541,10 @@
     const messageId = Date.now(); // Unique ID for this message
 
     //add user message to the top of the chat
-    streamedGreeting +=
-      `<h2 class="userMsg" data-msg-id="${messageId}"> <span>${userMsg}</span>` +
+    streamedGreeting += `<h2 class="userMsg" data-msg-id="${messageId}"> <span>${userMsg}</span>` +
       `${theThumbnail ? `<img src="${theThumbnail}" alt="User uploaded image">` : ""}
       </h2>`;
+
 
     streamedGreeting += `<p><small><strong>${selectedModel}</strong></small></p>`;
     streamedGreeting += "\n\n";
@@ -607,9 +556,7 @@
     requestAnimationFrame(() => {
       const newMsg = document.querySelector(`[data-msg-id="${messageId}"]`);
       if (newMsg) {
-        newMsg.classList.add("animate-in");
-        // Auto-scroll to the new user message
-        newMsg.scrollIntoView({ behavior: "smooth", block: "start" });
+        newMsg.classList.add('animate-in');
       }
     });
 
@@ -627,7 +574,7 @@
         role: "user",
         content: userMsg,
         images: [...theImage], // Clone array to preserve in history
-        mediaType: imageMediaType,
+        mediaType: imageMediaType
       };
     } else {
       chatConvo[countConvo++] = {
@@ -639,7 +586,7 @@
         role: "user",
         content: userMsg,
         images: [...theImage], // Clone array to preserve in history
-        mediaType: imageMediaType,
+        mediaType: imageMediaType
       };
     }
 
@@ -649,10 +596,8 @@
     imageMediaType = "";
 
     // Determine provider from selected model
-    const provider = selectedModelOption
-      ? selectedModelOption.provider
-      : "ollama";
-
+    const provider = selectedModelOption ? selectedModelOption.provider : 'ollama';
+    
     if (selectedModel === "fal-flux" || selectedModel === "Fal - Flux") {
       falImage();
     } else if (provider === "claude") {
@@ -665,45 +610,137 @@
       abortController = new AbortController();
       lastChatResponse = "";
 
-      try {
-        const response = await ollama.chat({
-          model: selectedModel,
-          messages: chatConvo,
-          stream: true,
-          options: {
-            temperature: 0.9,
-          },
-          signal: abortController.signal,
-        });
+      // Check if model supports tool calling
+      const useTools = supportsToolCalling(selectedModel);
+      console.log(`🔧 Tool calling ${useTools ? 'ENABLED' : 'DISABLED'} for model: ${selectedModel}`);
 
-        for await (const part of response) {
-          if (abortController.signal.aborted) {
-            ollama.abort();
-            break;
+      try {
+        // Agent loop for tool calling
+        let continueLoop = true;
+        let loopCount = 0;
+        const maxLoops = 5; // Prevent infinite loops
+
+        while (continueLoop && loopCount < maxLoops) {
+          loopCount++;
+          console.log(`🔄 Agent loop iteration ${loopCount}`);
+
+          const response = await ollama.chat({
+            model: selectedModel,
+            messages: chatConvo,
+            stream: true,
+            tools: useTools ? tools : undefined,
+            options: {
+              temperature: 0.9,
+            },
+            signal: abortController.signal,
+          });
+
+          let currentMessage = { role: 'assistant', content: '' };
+          let toolCalls = [];
+
+          for await (const part of response) {
+            if (abortController.signal.aborted) {
+              ollama.abort();
+              break;
+            }
+
+            // Handle tool calls
+            if (part.message.tool_calls) {
+              toolCalls = part.message.tool_calls;
+              console.log('🔧 Tool calls detected:', toolCalls);
+            }
+
+            // Stream content
+            if (part.message.content) {
+              streamedGreeting += part.message.content;
+              lastChatResponse += part.message.content;
+              currentMessage.content += part.message.content;
+              responseMarked = marked.parse(streamedGreeting);
+            }
+
+            // Track tokens
+            if (part.eval_count) {
+              tokenCount = Number(part.eval_count);
+              tokenSpeed = Number(
+                (part.eval_count / part.eval_duration) * Math.pow(10, 9)
+              ).toFixed(2);
+            }
           }
-          streamedGreeting += part.message.content;
-          lastChatResponse += part.message.content;
-          responseMarked = marked.parse(streamedGreeting);
-          //looks for end of stream
-          if (part.eval_count) {
-            tokenCount = Number(part.eval_count);
-            tokenSpeed = Number(
-              (part.eval_count / part.eval_duration) * Math.pow(10, 9),
-            ).toFixed(2);
+
+          // If there are tool calls, execute them
+          if (toolCalls && toolCalls.length > 0) {
+            console.log(`🔧 Executing ${toolCalls.length} tool(s)...`);
+            
+            // Add tool call indicator to UI
+            streamedGreeting += `\n\n*🔍 Using tools: ${toolCalls.map(tc => tc.function.name).join(', ')}...*\n\n`;
+            responseMarked = marked.parse(streamedGreeting);
+
+            // Add assistant message with tool calls to conversation
+            chatConvo[countConvo++] = {
+              role: 'assistant',
+              content: currentMessage.content,
+              tool_calls: toolCalls
+            };
+
+            // Execute each tool and add results to conversation
+            for (const toolCall of toolCalls) {
+              try {
+                const toolName = toolCall.function.name;
+                const toolArgs = toolCall.function.arguments;
+                
+                console.log(`🔧 Calling ${toolName} with args:`, toolArgs);
+                const result = await executeTool(toolName, toolArgs);
+                console.log(`✅ Tool ${toolName} result:`, result);
+
+                // Add tool result to conversation
+                chatConvo[countConvo++] = {
+                  role: 'tool',
+                  content: result,
+                  tool_name: toolName
+                };
+
+                // Show tool result in UI (optional, can be removed for cleaner output)
+                // streamedGreeting += `\n*Tool ${toolName} completed*\n`;
+                // responseMarked = marked.parse(streamedGreeting);
+
+              } catch (error) {
+                console.error(`❌ Tool execution error:`, error);
+                chatConvo[countConvo++] = {
+                  role: 'tool',
+                  content: JSON.stringify({ error: error.toString() }),
+                  tool_name: toolCall.function.name
+                };
+              }
+            }
+
+            // Continue loop to get final response with tool results
+            continueLoop = true;
+            lastChatResponse = ""; // Reset for next iteration
+          } else {
+            // No tool calls, we're done
+            continueLoop = false;
           }
         }
+
+        if (loopCount >= maxLoops) {
+          console.warn('⚠️ Max agent loops reached');
+          streamedGreeting += `\n\n*Maximum tool iterations reached.*\n`;
+          responseMarked = marked.parse(streamedGreeting);
+        }
+
         console.log("streamGreet:", streamedGreeting);
       } catch (error) {
         if (error.name === "AbortError") {
           console.log("Stream was aborted");
         } else {
           console.error("Error during streaming:", error);
+          streamedGreeting += `\n\n*Error: ${error.message}*\n`;
+          responseMarked = marked.parse(streamedGreeting);
         }
       } finally {
         isStreaming = false;
         responseMarked = marked.parse(streamedGreeting);
         Utils.addCopyButtonToPre();
-        //streamedGreeting += ``;
       }
     }
 
@@ -722,7 +759,7 @@
       // Use instant scroll during streaming for better performance
       chatContainer.scrollTo({
         top: chatContainer.scrollHeight,
-        behavior: isStreaming ? "instant" : "smooth",
+        behavior: isStreaming ? 'instant' : 'smooth'
       });
     }
     scrollScheduled = false;
@@ -773,11 +810,9 @@
       requestAnimationFrame(() => {
         const chatContainer = document.querySelector("#chat-container");
         if (chatContainer) {
-          const scrollBottom =
-            chatContainer.scrollHeight - chatContainer.scrollTop;
+          const scrollBottom = chatContainer.scrollHeight - chatContainer.scrollTop;
           const isAtBottom = scrollBottom <= chatContainer.clientHeight + 150;
-          const hasOverflow =
-            chatContainer.scrollHeight > chatContainer.clientHeight;
+          const hasOverflow = chatContainer.scrollHeight > chatContainer.clientHeight;
           showScrollButton = hasOverflow && !isAtBottom;
         }
       });
@@ -821,7 +856,7 @@
 
   function handleColorChange(event) {
     const { color } = event.detail;
-    localStorage.setItem("themeColor", color);
+    localStorage.setItem('themeColor', color);
   }
 </script>
 
@@ -832,30 +867,34 @@
 <div id="settings">
   <div class="settings-content">
     <header>
-      <h1 class="text-xl">Settings</h1>
-      <Button type="icon-only" icon="x" on:click={Utils.closeSettings} />
+      <h1 class='text-xl'>Settings</h1><Button type="icon-only" icon="x" on:click={Utils.closeSettings}/>
     </header>
 
     <section>
-      <h2 class="text-lg">General</h2>
-      <p
-        style="display:flex;flex-direction:row;align-items:flex-end;gap:2.5rem;"
-      >
+      <h2 class='text-lg'>General</h2>
+      <p style='display:flex;flex-direction:row;align-items:flex-end;gap:2.5rem;'>
+
         <!-- <Select id='typeface' small={true} /> -->
-        <Toggle id="darkModeToggle" />
+        <Toggle  id="darkModeToggle"  />
         <ColorPicker color={themeColor} on:colorChange={handleColorChange} />
       </p>
-      <TabbedModelManager {loadModelNames} onModelDeleted={loadModels} />
-    </section>
+      <TabbedModelManager 
+        {loadModelNames} 
+        onModelDeleted={loadModels}
+      />
+  </section>
   </div>
+  
 </div>
 
 <header id="title">
-  <div class="leftCol">
+  <div class='leftCol'>
+ 
     <div id="weather">
       <span class="weather-icon"></span>
       <div><span class="weather-report"></span></div>
-      <!-- <div class="weather-details"></div> -->
+     <!-- <div class="weather-details"></div> -->
+    
     </div>
     <span>|</span>
     <Button label="Settings" type="link" on:click={Utils.openSettings} />
@@ -863,16 +902,17 @@
   <h1>Olly</h1>
   <div class="rightCol">
     <label for="model-select" class="visualhide">Choose a model:</label>
-    <SearchableSelect
+    <SearchableSelect 
       options={allModels}
       bind:value={selectedModel}
       on:change={handleModelChange}
       placeholder="Search models..."
     />
   </div>
+ 
 </header>
 <main>
-  <CalendarSummary />
+ 
   <div id="chat-container">
     <section id="" class="response" aria-live="polite" role="log">
       {@html responseMarked}
@@ -885,35 +925,21 @@
         in:fly={{ y: 4, duration: 200 }}
         out:fly={{ y: 4, duration: 200 }}
         on:click={() => {
-          const chatContainer = document.querySelector("#chat-container");
-          if (chatContainer) {
-            chatContainer.scrollTo({
-              top: chatContainer.scrollHeight,
-              behavior: "smooth",
-            });
-            userScrolledUp = false;
-            showScrollButton = false;
-          }
-        }}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="feather feather-arrow-down"
-          ><line x1="12" y1="5" x2="12" y2="19"></line><polyline
-            points="19 12 12 19 5 12"
-          ></polyline></svg
-        >
+        const chatContainer = document.querySelector("#chat-container");
+        if (chatContainer) {
+          chatContainer.scrollTo({
+            top: chatContainer.scrollHeight,
+            behavior: 'smooth'
+          });
+          userScrolledUp = false;
+          showScrollButton = false;
+        }
+      }}>
+       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-down"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
       </button>
     {/if}
   </div>
+ 
 
   <div id="userinput" class="halftone">
     <div class="combotext">
@@ -949,15 +975,16 @@
         <SendButton
           label={isStreaming ? "Stop" : "Send"}
           on:click={isStreaming ? stopStreaming : callOllama}
-          elID={isStreaming ? "stopBtn" : "sendBtn"}
+          elID="{isStreaming ? "stopBtn" : "sendBtn"}"
         />
       </div>
     </div>
     <!-- <audio id="speech" controls style="position: fixed; bottom: 0; left: 0; width: 100%;" /> -->
     <p class="modelInfo">
-      &nbsp; <strong>{selectedModel}</strong>:
+       &nbsp; <strong>{selectedModel}</strong>:
       <span class="highlightText">{tokenSpeed} tokens/sec</span>
-      &mdash; <span class="highlightText">{tokenCount} total tokens</span>
+      &mdash; <span class="highlightText">{tokenCount} total tokens</span> 
+      
     </p>
   </div>
 </main>
