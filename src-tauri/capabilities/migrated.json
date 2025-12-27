@@ -63,6 +63,10 @@
     "dialog:default",
     "shell:default",
     "http:default",
-    "os:default"
+    "os:default",
+    "calendar:default",
+    "calendar:allow-fetch-events",
+    "calendar:allow-request-permission",
+    "calendar:allow-check-permission"
   ]
 }

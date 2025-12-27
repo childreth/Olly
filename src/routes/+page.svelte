@@ -14,6 +14,7 @@
   import Toast from "$lib/components/toast.svelte";
   import SearchableSelect from "$lib/components/searchableSelect.svelte";
   import TabbedModelManager from "$lib/components/tabbedModelManager.svelte";
+  import CalendarSummary from "$lib/components/CalendarSummary.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   import { open } from "@tauri-apps/plugin-dialog";
@@ -871,6 +872,7 @@
   </div>
 </header>
 <main>
+  <CalendarSummary />
   <div id="chat-container">
     <section id="" class="response" aria-live="polite" role="log">
       {@html responseMarked}

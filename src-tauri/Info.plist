@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Olly needs access to your calendar to summarize upcoming appointments and help you stay organized.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Olly requires full calendar access to read your upcoming events and provide intelligent summaries.</string>
+</dict>
+</plist>

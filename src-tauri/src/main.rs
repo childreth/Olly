@@ -1053,6 +1053,7 @@ fn main() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_calendar::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             ask_claude,
@@ -1077,7 +1078,8 @@ fn main() {
             test_exact_keyring,
             store_api_key_debug,
             get_api_key_debug,
-            migrate_claude_key
+            migrate_claude_key,
+            summarize_calendar_events
         ])
         .setup(|app| {
             info!("Running setup function");
@@ -2162,6 +2164,99 @@ async fn ask_perplexity(
 
     info!("Returning response from Perplexity");
     Ok(perplexity_response.choices[0].message.content.clone())
+}
+
+// Calendar summarization command
+#[tauri::command]
+async fn summarize_calendar_events(
+    _app: tauri::AppHandle,
+    events_json: String,
+    model: Option<String>,
+) -> Result<String, String> {
+    info!("Starting calendar summarization");
+
+    // Parse the events JSON
+    let events: Vec<serde_json::Value> = serde_json::from_str(&events_json)
+        .map_err(|e| format!("Failed to parse events JSON: {}", e))?;
+
+    if events.is_empty() {
+        return Ok("You have no upcoming events in the next 2 weeks.".to_string());
+    }
+
+    // Format events into a readable prompt
+    let mut event_descriptions = Vec::new();
+    for event in &events {
+        let title = event.get("title").and_then(|v| v.as_str()).unwrap_or("Untitled");
+        let start = event.get("startDate").and_then(|v| v.as_str()).unwrap_or("");
+        let location = event.get("location").and_then(|v| v.as_str());
+        let is_all_day = event.get("isAllDay").and_then(|v| v.as_bool()).unwrap_or(false);
+        let calendar = event.get("calendarTitle").and_then(|v| v.as_str());
+
+        let mut desc = format!("• {} on {}", title, start);
+        if let Some(loc) = location {
+            if !loc.is_empty() {
+                desc.push_str(&format!(" at {}", loc));
+            }
+        }
+        if is_all_day {
+            desc.push_str(" (All Day)");
+        }
+        if let Some(cal) = calendar {
+            desc.push_str(&format!(" [{}]", cal));
+        }
+        event_descriptions.push(desc);
+    }
+
+    let events_text = event_descriptions.join("\n");
+    let prompt = format!(
+        "You are a helpful assistant. Please provide a concise summary of these upcoming calendar events for the next 2 weeks. Highlight any important appointments or patterns:\n\n{}\n\nProvide a brief, friendly summary.",
+        events_text
+    );
+
+    info!("Generated prompt for {} events", events.len());
+
+    // Use local Ollama model for summarization (or user's preferred model)
+    let model_name = model.unwrap_or_else(|| "gemma3:1b".to_string());
+
+    // Call local Ollama model
+    let client = reqwest::Client::new();
+    let request_body = serde_json::json!({
+        "model": model_name,
+        "prompt": prompt,
+        "stream": false,
+        "options": {
+            "temperature": 0.3,
+            "num_predict": 300
+        }
+    });
+
+    info!("Sending request to Ollama with model: {}", model_name);
+
+    let response = client
+        .post("http://localhost:11434/api/generate")
+        .json(&request_body)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to call Ollama API: {}. Is Ollama running?", e))?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await.unwrap_or_default();
+        return Err(format!("Ollama API error: {}", error_text));
+    }
+
+    let response_json: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
+
+    let summary = response_json
+        .get("response")
+        .and_then(|v| v.as_str())
+        .ok_or("No response from Ollama")?
+        .to_string();
+
+    info!("Successfully generated calendar summary");
+    Ok(summary)
 }
 
 #[tauri::command]

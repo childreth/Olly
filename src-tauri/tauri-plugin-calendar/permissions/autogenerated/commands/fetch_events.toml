@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-fetch-events"
+description = "Enables the fetch_events command without any pre-configured scope."
+commands.allow = ["fetch_events"]
+
+[[permission]]
+identifier = "deny-fetch-events"
+description = "Denies the fetch_events command without any pre-configured scope."
+commands.deny = ["fetch_events"]
