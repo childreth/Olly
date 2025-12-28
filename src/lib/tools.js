@@ -62,19 +62,29 @@ async function getCalendarEvents(args) {
     if (permissionStatus === "prompt") {
       console.log("📅 Permission not determined, requesting...");
       const permissionResponse = await invoke("plugin:calendar|request_permission");
+      console.log("📅 Permission response:", permissionResponse);
       
       if (!permissionResponse.granted) {
         return JSON.stringify({
           error: "Calendar access denied",
-          message: "Please grant calendar access when prompted, or go to System Settings > Privacy & Security > Calendars to enable access for Olly.",
+          message: "Calendar access was denied. Please go to System Settings > Privacy & Security > Calendars and enable access for the Olly app, then try again.",
           permissionStatus: "denied"
         });
       }
       // Permission just granted, continue to fetch
+      console.log("📅 Permission granted, proceeding to fetch events");
+    } else if (permissionStatus === "denied") {
+      // Permission explicitly denied
+      return JSON.stringify({
+        error: "Calendar access denied",
+        message: "Calendar access is currently denied. Please go to System Settings > Privacy & Security > Calendars and enable access for the Olly app.",
+        permissionStatus: "denied"
+      });
     } else if (permissionStatus !== "authorized") {
+      // Unknown status
       return JSON.stringify({
         error: "Calendar access not granted",
-        message: "Please grant calendar access in System Settings > Privacy & Security > Calendars to use this feature.",
+        message: `Calendar permission status: ${permissionStatus}. Please check System Settings > Privacy & Security > Calendars.`,
         permissionStatus
       });
     }
@@ -104,11 +114,17 @@ async function getCalendarEvents(args) {
       calendar: event.calendarTitle || null
     }));
     
-    return JSON.stringify({
-      message: `Found ${events.length} event(s) in the next ${daysAhead} days.`,
+    const result = {
+      message: `Found ${events.length} event(s) in the next ${daysAhead} days. Provide a helpful summary of the most relevant events based on the user's question.`,
       daysAhead,
+      totalEvents: events.length,
       events: formattedEvents
-    });
+    };
+    
+    // Log full response for debugging
+    console.log('📅 Calendar tool response:', JSON.stringify(result, null, 2));
+    
+    return JSON.stringify(result);
     
   } catch (error) {
     console.error("Error fetching calendar events:", error);
@@ -152,6 +168,7 @@ export function supportsToolCalling(modelName) {
     /functionary/i,
     /hermes.*tool/i,
     /nous.*hermes/i,
+    /functiongemma/i,
     
     // Granite family (all versions)
     /granite/i,

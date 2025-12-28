@@ -611,6 +611,7 @@
       lastChatResponse = "";
 
       // Check if model supports tool calling
+      // Note: Tool calling (especially calendar) may not work in dev mode due to missing Info.plist bundle
       const useTools = supportsToolCalling(selectedModel);
       console.log(`🔧 Tool calling ${useTools ? 'ENABLED' : 'DISABLED'} for model: ${selectedModel}`);
 
