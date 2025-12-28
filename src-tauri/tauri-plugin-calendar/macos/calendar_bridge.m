@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <EventKit/EventKit.h>
 #import <objc/message.h>
+#import <os/log.h>
 
 // Bridge functions callable from Rust
 int calendar_request_permission() {
@@ -121,6 +122,10 @@ int calendar_fetch_events(int days_ahead, char **json_ptr) {
         // Convert events to JSON array
         NSMutableArray *eventArray = [NSMutableArray array];
         NSISO8601DateFormatter *dateFormatter = [[NSISO8601DateFormatter alloc] init];
+        
+        // Track event statistics
+        int recurringCount = 0;
+        int oneTimeCount = 0;
 
         for (EKEvent *event in events) {
             NSMutableDictionary *eventDict = [NSMutableDictionary dictionary];
@@ -134,14 +139,35 @@ int calendar_fetch_events(int days_ahead, char **json_ptr) {
             eventDict[@"notes"] = event.notes ?: [NSNull null];
             eventDict[@"isAllDay"] = @(event.allDay);
             
+            // Add recurrence information
+            BOOL isRecurring = event.hasRecurrenceRules;
+            eventDict[@"isRecurring"] = @(isRecurring);
+            
             if (event.calendar && event.calendar.title) {
                 eventDict[@"calendarTitle"] = event.calendar.title;
             } else {
                 eventDict[@"calendarTitle"] = [NSNull null];
             }
+            
+            // Log event type for debugging (use os_log with %{public}@ to show in Console.app)
+            os_log(OS_LOG_DEFAULT, "[Calendar Plugin] Event: '%{public}@' | Recurring: %{public}@ | Calendar: %{public}@", 
+                  event.title ?: @"(no title)", 
+                  isRecurring ? @"YES" : @"NO",
+                  event.calendar.title ?: @"Unknown");
+            
+            // Update statistics
+            if (isRecurring) {
+                recurringCount++;
+            } else {
+                oneTimeCount++;
+            }
 
             [eventArray addObject:eventDict];
         }
+        
+        // Log summary statistics
+        NSLog(@"[Calendar Plugin] Event Summary: %d total | %d recurring | %d one-time", 
+              (int)[events count], recurringCount, oneTimeCount);
 
         // Wrap in response structure
         NSDictionary *response = @{@"events": eventArray};

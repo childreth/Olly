@@ -111,18 +111,26 @@ async function getCalendarEvents(args) {
       location: event.location || null,
       notes: event.notes || null,
       isAllDay: event.isAllDay,
+      isRecurring: event.isRecurring || false,
       calendar: event.calendarTitle || null
     }));
     
+    // Calculate event statistics
+    const recurringEvents = formattedEvents.filter(e => e.isRecurring);
+    const oneTimeEvents = formattedEvents.filter(e => !e.isRecurring);
+    
     const result = {
-      message: `Found ${events.length} event(s) in the next ${daysAhead} days. Provide a helpful summary of the most relevant events based on the user's question.`,
+      message: `Found ${events.length} event(s) in the next ${daysAhead} days (${recurringEvents.length} recurring, ${oneTimeEvents.length} one-time). Provide a helpful summary of the most relevant events based on the user's question. Format any event data you show using code blocks for better readability.`,
       daysAhead,
       totalEvents: events.length,
+      recurringCount: recurringEvents.length,
+      oneTimeCount: oneTimeEvents.length,
       events: formattedEvents
     };
     
     // Log full response for debugging
     console.log('📅 Calendar tool response:', JSON.stringify(result, null, 2));
+    console.log(`📊 Event breakdown: ${oneTimeEvents.length} one-time, ${recurringEvents.length} recurring`);
     
     return JSON.stringify(result);
     

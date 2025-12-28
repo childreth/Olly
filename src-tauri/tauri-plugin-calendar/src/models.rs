@@ -21,6 +21,7 @@ pub struct CalendarEvent {
   pub location: Option<String>,
   pub notes: Option<String>,
   pub is_all_day: bool,
+  pub is_recurring: bool,
   pub calendar_title: Option<String>,
 }
 
