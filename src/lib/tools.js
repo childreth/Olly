@@ -120,7 +120,7 @@ async function getCalendarEvents(args) {
     const oneTimeEvents = formattedEvents.filter(e => !e.isRecurring);
     
     const result = {
-      message: `Found ${events.length} event(s) in the next ${daysAhead} days (${recurringEvents.length} recurring, ${oneTimeEvents.length} one-time). Provide a helpful summary of the most relevant events based on the user's question. Format any event data you show using code blocks for better readability.`,
+      message: `Found ${events.length} event(s) in the next ${daysAhead} days: ${recurringEvents.length} recurring and ${oneTimeEvents.length} one-time events. When summarizing, make sure to include BOTH recurring and one-time events. Format any event data you show using code blocks for better readability.`,
       daysAhead,
       totalEvents: events.length,
       recurringCount: recurringEvents.length,
