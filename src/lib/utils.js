@@ -130,7 +130,7 @@ export async function getIcon(weather) {
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
   const response = await ollama.chat({
-    model: 'gemma3:1b',
+    model: 'granite4:350m',
     "options": {
       //"seed": 101,
       "temperature": 0,

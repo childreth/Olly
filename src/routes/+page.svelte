@@ -63,7 +63,7 @@
   let toastType = "info";
 
 //very basic system prompt to test speed vs terimal interface
-  const systemMsg = `You are a helpful assistant and like really responsing with emojies. You job will be to help write better content for the user. Always return markdown formatted responses.`;
+  const systemMsg = `You are a helpful assistant and like really responsing with emojies.`;
 
   
   onMount(async () => {
@@ -630,6 +630,7 @@
             messages: chatConvo,
             stream: true,
             tools: useTools ? tools : undefined,
+            think: true,
             options: {
               temperature: 0.9,
             },
@@ -638,11 +639,24 @@
 
           let currentMessage = { role: 'assistant', content: '' };
           let toolCalls = [];
+          let thinkingContent = '';
+          let inThinking = false;
 
           for await (const part of response) {
             if (abortController.signal.aborted) {
               ollama.abort();
               break;
+            }
+
+            // Handle thinking trace
+            if (part.message.thinking) {
+              if (!inThinking) {
+                inThinking = true;
+                streamedGreeting += '\n\n<details>\n<summary>💭 Thinking...</summary>\n\n```\n';
+              }
+              thinkingContent += part.message.thinking;
+              streamedGreeting += part.message.thinking;
+              responseMarked = marked.parse(streamedGreeting);
             }
 
             // Handle tool calls
@@ -653,6 +667,10 @@
 
             // Stream content
             if (part.message.content) {
+              if (inThinking) {
+                streamedGreeting += '\n```\n</details>\n\n';
+                inThinking = false;
+              }
               streamedGreeting += part.message.content;
               lastChatResponse += part.message.content;
               currentMessage.content += part.message.content;
@@ -670,7 +688,13 @@
 
           // If there are tool calls, execute them
           if (toolCalls && toolCalls.length > 0) {
-            console.log(`🔧 Executing ${toolCalls.length} tool(s)...`);
+            console.log(`🔧 Executing ${toolCalls.length} tool(s) in parallel...`);
+            
+            // Close thinking details if still open
+            if (inThinking) {
+              streamedGreeting += '\n```\n</details>\n\n';
+              inThinking = false;
+            }
             
             // Add tool call indicator to UI
             streamedGreeting += `\n\n*🔍 Using tools: ${toolCalls.map(tc => tc.function.name).join(', ')}...*\n\n`;
@@ -683,35 +707,32 @@
               tool_calls: toolCalls
             };
 
-            // Execute each tool and add results to conversation
-            for (const toolCall of toolCalls) {
-              try {
-                const toolName = toolCall.function.name;
-                const toolArgs = toolCall.function.arguments;
-                
-                console.log(`🔧 Calling ${toolName} with args:`, toolArgs);
-                const result = await executeTool(toolName, toolArgs);
-                console.log(`✅ Tool ${toolName} result:`, result);
+            // Execute all tools concurrently
+            const toolResults = await Promise.all(
+              toolCalls.map(async (toolCall) => {
+                try {
+                  const toolName = toolCall.function.name;
+                  const toolArgs = toolCall.function.arguments;
+                  
+                  console.log(`🔧 Calling ${toolName} with args:`, toolArgs);
+                  const result = await executeTool(toolName, toolArgs);
+                  console.log(`✅ Tool ${toolName} result:`, result);
+                  
+                  return { success: true, toolCall, result };
+                } catch (error) {
+                  console.error(`❌ Tool execution error:`, error);
+                  return { success: false, toolCall, error };
+                }
+              })
+            );
 
-                // Add tool result to conversation
-                chatConvo[countConvo++] = {
-                  role: 'tool',
-                  content: result,
-                  tool_name: toolName
-                };
-
-                // Show tool result in UI (optional, can be removed for cleaner output)
-                // streamedGreeting += `\n*Tool ${toolName} completed*\n`;
-                // responseMarked = marked.parse(streamedGreeting);
-
-              } catch (error) {
-                console.error(`❌ Tool execution error:`, error);
-                chatConvo[countConvo++] = {
-                  role: 'tool',
-                  content: JSON.stringify({ error: error.toString() }),
-                  tool_name: toolCall.function.name
-                };
-              }
+            // Add all tool results to conversation
+            for (const { success, toolCall, result, error } of toolResults) {
+              chatConvo[countConvo++] = {
+                role: 'tool',
+                content: success ? result : JSON.stringify({ error: error.toString() }),
+                tool_name: toolCall.function.name
+              };
             }
 
             // Continue loop to get final response with tool results
