@@ -33,3 +33,18 @@ pub(crate) async fn fetch_events<R: Runtime>(
 ) -> Result<FetchEventsResponse> {
     app.calendar().fetch_events(payload)
 }
+
+#[command]
+pub(crate) async fn get_diagnostics<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<DiagnosticResponse> {
+    app.calendar().get_diagnostics()
+}
+
+#[command]
+pub(crate) async fn create_event<R: Runtime>(
+    app: AppHandle<R>,
+    payload: CreateEventRequest,
+) -> Result<CreateEventResponse> {
+    app.calendar().create_event(payload)
+}

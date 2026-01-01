@@ -29,7 +29,7 @@ mod api_keys {
         pub providers: HashMap<String, ApiKeyEntry>,
     }
 
-    const KEYRING_SERVICE: &str = "com.olly.app";
+    const KEYRING_SERVICE: &str = "com.olly.chat";
     const KEYRING_USER: &str = "api_keys";
     const STORE_KEY: &str = "api_key_store";
 
@@ -852,7 +852,7 @@ async fn test_store_load(_app: tauri::AppHandle) -> Result<String, String> {
 async fn test_keyring() -> Result<String, String> {
     use keyring::Entry;
 
-    let test_service = "com.olly.app.test";
+    let test_service = "com.olly.chat.test";
     let test_key = "test_key";
     let test_value = "test_value_123";
 
@@ -893,7 +893,7 @@ async fn test_exact_keyring() -> Result<String, String> {
     use keyring::Entry;
 
     // Test with the exact same service and key that our store uses
-    let service = "com.olly.app";
+    let service = "com.olly.chat";
     let key = "api_key_store";
     let test_value = r#"{"providers":{"test":{"provider":"test","display_name":"Test","created_at":"2025-01-01T00:00:00Z","last_used":null,"is_active":true}}}"#;
 

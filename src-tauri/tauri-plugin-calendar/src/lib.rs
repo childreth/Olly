@@ -39,7 +39,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
       commands::ping,
       commands::request_permission,
       commands::check_permission,
-      commands::fetch_events
+      commands::fetch_events,
+      commands::create_event,
+      commands::get_diagnostics
     ])
     .setup(|app, api| {
       #[cfg(mobile)]

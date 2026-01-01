@@ -63,7 +63,11 @@
   let toastType = "info";
 
 //very basic system prompt to test speed vs terimal interface
-  const systemMsg = `You are a helpful assistant and like really responsing with emojies. You job will be to help write better content for the user. Always return markdown formatted responses.`;
+  const systemMsg = `You are Olly, a helpful AI assistant. You have access to external tools for checking calendar status, creating events, fetching events, and checking weather.
+If the user asks to check calendar status, YOU MUST use the 'checkCalendarStatus' tool.
+If the user asks to create an event, use the 'createCalendarEvent' tool.
+If the user asks about schedule, use 'getCalendarEvents'.
+Always return markdown formatted responses.`;
 
   
   onMount(async () => {
@@ -559,7 +563,11 @@
 
     //add user message to the thread
     if (countConvo == 0) {
-      chatConvo[countConvo++] = { role: "system", content: systemMsg };
+      chatConvo[countConvo++] = { role: "system", content: `You are Olly, a helpful AI assistant. You have access to external tools for checking calendar status, creating events, fetching events, and checking weather.
+If the user asks to check calendar status, YOU MUST use the 'checkCalendarStatus' tool.
+If the user asks to create an event, use the 'createCalendarEvent' tool.
+If the user asks about schedule, use 'getCalendarEvents'.
+Always return markdown formatted responses.` };
       chatConvo[countConvo++] = {
         role: "user",
         content: userMsg,
@@ -604,6 +612,9 @@
       // Note: Tool calling (especially calendar) may not work in dev mode due to missing Info.plist bundle
       const useTools = supportsToolCalling(selectedModel);
       console.log(`🔧 Tool calling ${useTools ? 'ENABLED' : 'DISABLED'} for model: ${selectedModel}`);
+      if (useTools) {
+        console.log('🔧 Available tools:', JSON.stringify(tools, null, 2));
+      }
 
       try {
         // Agent loop for tool calling

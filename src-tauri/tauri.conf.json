@@ -30,7 +30,7 @@
   "productName": "olly",
   "mainBinaryName": "olly",
   "version": "0.1.0",
-  "identifier": "com.olly.app",
+  "identifier": "com.olly.chat",
   "plugins": {},
   "app": {
     "macOSPrivateApi": true,

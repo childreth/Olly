@@ -2,10 +2,11 @@
 
 ## Overview
 
-The **tauri-plugin-calendar** is a custom Tauri plugin that provides macOS Calendar (EventKit) integration for the Olly application. It enables reading calendar events and generating AI-powered summaries of upcoming appointments.
+The **tauri-plugin-calendar** is a custom Tauri plugin that provides macOS Calendar (EventKit) integration for the Olly application. It enables reading calendar events, creating new calendar events, and generating AI-powered summaries of upcoming appointments.
 
 **Created:** 2025-01-26
-**Status:** ✅ Implemented
+**Last Updated:** 2026-01-01
+**Status:** ✅ Implemented (Read & Write)
 **Platform:** macOS only (requires EventKit framework)
 
 ---
@@ -40,6 +41,8 @@ The **tauri-plugin-calendar** is a custom Tauri plugin that provides macOS Calen
 │ macos/calendar_bridge.m                                     │
 │  - calendar_request_permission()                            │
 │  - calendar_fetch_events()                                  │
+│  - calendar_create_event()                                  │
+│  - calendar_get_diagnostics()                               │
 │  - calendar_free_string()                                   │
 └───────────────────┬─────────────────────────────────────────┘
                     │ Native macOS API calls
@@ -133,6 +136,26 @@ main.rs → summarize_calendar_events() → Ollama API
 AI-generated summary returned to UI
 ```
 
+### 3. Event Creation Flow
+
+```
+User asks AI to create event (e.g., "Schedule meeting tomorrow at 3pm")
+    ↓
+AI detects intent and calls createCalendarEvent tool
+    ↓
+tools.js → invoke("plugin:calendar|create_event", { payload: { title, startDate, endDate, ... } })
+    ↓
+commands.rs → create_event()
+    ↓
+desktop/macos.rs → calendar_create_event() [FFI]
+    ↓
+calendar_bridge.m → EKEvent.eventWithEventStore() → store.saveEvent()
+    ↓
+Response: { success: true, eventId: "...", calendarTitle: "..." }
+    ↓
+AI confirms event creation to user
+```
+
 ---
 
 ## API Reference
@@ -186,6 +209,80 @@ console.log(`Found ${response.events.length} events`);
 
 ---
 
+#### `create_event`
+**Path:** `plugin:calendar|create_event`
+**Parameters:** `CreateEventRequest { title, startDate, endDate, location?, notes?, isAllDay? }`
+**Returns:** `CreateEventResponse { success: bool, eventId: Option<String>, calendarTitle: Option<String>, error: Option<String> }`
+
+Creates a new calendar event in the user's default calendar. Uses main-thread affinity and automatic retry logic for ACL errors.
+
+**Robust Fallback Strategy:**
+1. Attempts to save to the default calendar.
+2. If default is read-only, searches for *any* writable calendar (Local, iCloud, Exchange).
+3. If no writable calendars exist, attempts to create a dedicated "Olly" calendar in the user's Local or iCloud account and saves the event there.
+
+---
+
+#### `get_diagnostics`
+**Path:** `plugin:calendar|get_diagnostics`
+**Parameters:** None
+**Returns:** `DiagnosticResponse { authStatus: i32, calendars: Vec<CalendarDiagnostic>, defaultCalendar: Option<String> }`
+
+Gathers detailed information about calendar permissions and available calendars to troubleshoot ACL issues.
+
+**CalendarDiagnostic Structure:**
+```typescript
+{
+  title: string,
+  typeCode: number,
+  allowsContentModifications: boolean,
+  sourceTitle: string,
+  isDefault: boolean
+}
+```
+
+**CreateEventRequest Structure:**
+```typescript
+{
+  title: string,              // Event title (required)
+  startDate: string,          // ISO8601 format (required)
+  endDate: string,            // ISO8601 format (required)
+  location: string | null,    // Optional location
+  notes: string | null,       // Optional notes/description
+  isAllDay: boolean           // Optional, default false
+}
+```
+
+**CreateEventResponse Structure:**
+```typescript
+{
+  success: boolean,
+  eventId: string | null,           // EventKit identifier if successful
+  calendarTitle: string | null,     // Name of calendar where event was created
+  error: string | null              // Error message if failed
+}
+```
+
+**Example:**
+```javascript
+const response = await invoke("plugin:calendar|create_event", {
+  payload: {
+    title: "Team Meeting",
+    startDate: "2026-01-15T14:00:00-05:00",
+    endDate: "2026-01-15T15:00:00-05:00",
+    location: "Conference Room A",
+    notes: "Discuss Q1 planning",
+    isAllDay: false
+  }
+});
+
+if (response.success) {
+  console.log(`Event created: ${response.eventId}`);
+}
+```
+
+---
+
 ### Main App Commands (Rust)
 
 #### `summarize_calendar_events`
@@ -217,9 +314,11 @@ Declares calendar usage purpose to macOS.
 
 ```xml
 <key>NSCalendarsUsageDescription</key>
-<string>Olly needs access to your calendar to summarize upcoming appointments.</string>
+<string>Olly needs access to your calendar to summarize upcoming appointments and help you stay organized.</string>
 <key>NSCalendarsFullAccessUsageDescription</key>
-<string>Olly requires full calendar access to read your upcoming events.</string>
+<string>Olly requires full calendar access to read your upcoming events and create new calendar appointments on your behalf.</string>
+<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+<string>Olly needs permission to create calendar events on your behalf.</string>
 ```
 
 #### 2. `Entitlements.plist`
@@ -275,6 +374,22 @@ pub struct PermissionResponse {
   pub granted: bool,
   pub message: Option<String>,
 }
+
+pub struct CreateEventRequest {
+  pub title: String,
+  pub start_date: String,
+  pub end_date: String,
+  pub location: Option<String>,
+  pub notes: Option<String>,
+  pub is_all_day: Option<bool>,
+}
+
+pub struct CreateEventResponse {
+  pub success: bool,
+  pub event_id: Option<String>,
+  pub calendar_title: Option<String>,
+  pub error: Option<String>,
+}
 ```
 
 ---
@@ -287,6 +402,15 @@ Rust FFI interface to Objective-C bridge:
 extern "C" {
     fn calendar_request_permission() -> c_int;
     fn calendar_fetch_events(days_ahead: c_int, json_ptr: *mut *mut c_char) -> c_int;
+    fn calendar_create_event(
+        title: *const c_char,
+        start_date_iso: *const c_char,
+        end_date_iso: *const c_char,
+        location: *const c_char,
+        notes: *const c_char,
+        is_all_day: c_int,
+        result_json_ptr: *mut *mut c_char,
+    ) -> c_int;
     fn calendar_free_string(ptr: *mut c_char);
 }
 
@@ -319,8 +443,17 @@ pub fn request_calendar_permission() -> crate::Result<PermissionResponse> {
 - Allocates C string via `strdup()` and returns pointer
 - Returns `0` (success) or `-1` (error)
 
+#### `calendar_create_event(title, start_date_iso, end_date_iso, location, notes, is_all_day, result_json_ptr)`
+- Checks authorization status (accepts Full Access or Write-Only)
+- Creates new `EKEvent` with provided details
+- Parses ISO8601 date strings using `NSISO8601DateFormatter`
+- Sets event to default calendar via `defaultCalendarForNewEvents`
+- Saves event using `EKEventStore.saveEvent()`
+- Returns JSON response with success status, event ID, and calendar title
+- Returns `0` (success) or `-1` (error)
+
 #### `calendar_free_string(ptr)`
-- Frees memory allocated by `calendar_fetch_events()`
+- Frees memory allocated by `calendar_fetch_events()` and `calendar_create_event()`
 
 ---
 
@@ -426,7 +559,7 @@ otool -L target/debug/olly
 codesign -d --entitlements - Olly.app
 
 # View calendar permissions
-tccutil reset Calendar com.olly.app
+tccutil reset Calendar com.olly.chat
 ```
 
 ---
@@ -451,7 +584,7 @@ tccutil reset Calendar com.olly.app
 **Solutions:**
 1. Check Info.plist contains `NSCalendarsUsageDescription`
 2. Verify Entitlements.plist has calendar entitlement
-3. Reset permissions: `tccutil reset Calendar com.olly.app`
+3. Reset permissions: `tccutil reset Calendar com.olly.chat`
 4. Check macOS version (14.0+ requires `requestFullAccessToEvents`)
 
 ---
@@ -468,10 +601,55 @@ tccutil reset Calendar com.olly.app
 
 ---
 
+## AI Tool Integration
+
+### createCalendarEvent Tool
+
+The calendar event creation is exposed as an AI tool in `src/lib/tools.js`, allowing AI assistants to create calendar events based on natural language requests.
+
+**Tool Definition:**
+```javascript
+{
+  type: 'function',
+  function: {
+    name: 'createCalendarEvent',
+    description: 'Create a new calendar event in the user\'s macOS Calendar...',
+    parameters: {
+      type: 'object',
+      required: ['title', 'startDate', 'endDate'],
+      properties: {
+        title: { type: 'string', description: 'Event title' },
+        startDate: { type: 'string', description: 'ISO8601 format with timezone' },
+        endDate: { type: 'string', description: 'ISO8601 format with timezone' },
+        location: { type: 'string', description: 'Optional location' },
+        notes: { type: 'string', description: 'Optional notes' },
+        isAllDay: { type: 'boolean', description: 'All-day event flag' }
+      }
+    }
+  }
+}
+```
+
+**Supported Models:**
+The tool is available when using tool-capable models including:
+- Llama 3.1+
+- Qwen 2.5+
+- Mistral family
+- DeepSeek (all versions)
+- Command R
+- And others (see `supportsToolCalling()` in tools.js)
+
+**Example User Requests:**
+- "Schedule a meeting with Bob tomorrow at 3pm"
+- "Create a dentist appointment next Tuesday at 10am"
+- "Add team standup to my calendar every Monday at 9am"
+
+---
+
 ## Future Enhancements
 
 ### Planned Features
-- [ ] Create events from chat interface ("Schedule meeting with Bob tomorrow at 3pm")
+- [x] Create events from chat interface ("Schedule meeting with Bob tomorrow at 3pm") ✅ **Implemented**
 - [ ] Set reminders via AI assistant
 - [ ] Conflict detection for scheduling
 - [ ] Filter by calendar (e.g., work calendar only)
@@ -525,6 +703,16 @@ tccutil reset Calendar com.olly.app
 
 ## Changelog
 
+### v0.2.0 (2026-01-01)
+- ✨ **Event Creation:** Create calendar events via AI assistant
+- ✅ Added `create_event` Tauri command
+- ✅ Objective-C bridge function `calendar_create_event()`
+- ✅ AI tool integration (`createCalendarEvent` tool)
+- ✅ Full calendar access permission support (read + write)
+- ✅ ISO8601 date parsing for event times
+- ✅ Support for location, notes, and all-day events
+- ✅ Error handling for permission and save failures
+
 ### v0.1.0 (2025-01-26)
 - ✨ Initial implementation
 - ✅ macOS EventKit integration via Objective-C FFI
@@ -560,6 +748,6 @@ For issues or questions:
 
 ---
 
-**Last Updated:** 2025-01-26
+**Last Updated:** 2026-01-01
 **Maintainer:** Olly Development Team
 **License:** Same as Olly project

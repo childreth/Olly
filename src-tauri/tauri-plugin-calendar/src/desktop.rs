@@ -52,4 +52,24 @@ impl<R: Runtime> Calendar<R> {
   pub fn fetch_events(&self, _payload: FetchEventsRequest) -> crate::Result<FetchEventsResponse> {
     Err(crate::Error::String("Calendar access is only supported on macOS".into()))
   }
+
+  #[cfg(target_os = "macos")]
+  pub fn get_diagnostics(&self) -> crate::Result<DiagnosticResponse> {
+    macos::get_calendar_diagnostics()
+  }
+
+  #[cfg(not(target_os = "macos"))]
+  pub fn get_diagnostics(&self) -> crate::Result<DiagnosticResponse> {
+    Err(crate::Error::String("Calendar diagnostics are only supported on macOS".into()))
+  }
+
+  #[cfg(target_os = "macos")]
+  pub fn create_event(&self, payload: CreateEventRequest) -> crate::Result<CreateEventResponse> {
+    macos::create_calendar_event(payload)
+  }
+
+  #[cfg(not(target_os = "macos"))]
+  pub fn create_event(&self, _payload: CreateEventRequest) -> crate::Result<CreateEventResponse> {
+    Err(crate::Error::String("Calendar event creation is only supported on macOS".into()))
+  }
 }
