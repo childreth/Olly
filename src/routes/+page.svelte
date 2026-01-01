@@ -453,31 +453,41 @@
         loadModelNames = [];
       }
 
-      // Get Claude models from backend
+      // Get Claude models if API key is available
       let claudeModels = [];
       let claudeApiSuccess = false;
       try {
-        console.log('Fetching Claude models from backend...');
-        const claudeResponse = await invoke("get_claude_models");
-        console.log('Claude models response:', claudeResponse);
-        
-        if (claudeResponse && claudeResponse.length > 0) {
-          claudeModels = claudeResponse;
-          // Add to old format for settings display
-          const claudeModelNames = claudeResponse.map(model => [
-            model.name,
-            "Not local - External API",
-            "N/A",
-            "N/A"
-          ]);
-          loadModelNames.push(...claudeModelNames);
-          claudeApiSuccess = true;
-          console.log(`Successfully loaded ${claudeModels.length} Claude models`);
-        } else {
-          console.log('No Claude models returned from backend');
+        const claudeApiKey = await invoke("get_api_key", { provider: "claude" });
+        if (claudeApiKey) {
+          const claudeResponse = await fetch('https://api.anthropic.com/v1/models?limit=5', {
+            method: 'GET',
+            headers: {
+              'x-api-key': claudeApiKey,
+              'anthropic-version': '2023-06-01'
+            }
+          });
+
+          if (claudeResponse.ok) {
+            const claudeData = claudeResponse.data;
+            claudeModels = claudeData.data.map(model => ({
+              id: model.id,
+              name: model.display_name || model.id,
+              description: "Claude API model",
+              provider: "claude"
+            }));
+            // Add to old format for settings display
+            const claudeModelNames = claudeData.data.map(model => [
+              model.display_name || model.id,
+              "Not local - External API",
+              "N/A",
+              "N/A"
+            ]);
+            loadModelNames.push(...claudeModelNames);
+            claudeApiSuccess = true;
+          }
         }
       } catch (error) {
-        console.error("Failed to get Claude models:", error);
+        console.warn("Claude API not available:", error);
       }
 
       // Add external API models to old format for settings (keeping fallback)
