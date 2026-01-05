@@ -2,11 +2,12 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { Ollama } from "ollama/browser";
-  import { onMount } from "svelte";
+  import { onMount, tick, mount } from "svelte";
   import { marked } from "marked";
   import { fly } from "svelte/transition";
   import * as Utils from "$lib/utils.js";
   import { tools, executeTool, supportsToolCalling } from "$lib/tools.js";
+  import { hasComponent, getComponent } from "$lib/components/generative/componentRegistry.js";
   import SendButton from "$lib/components/sendButton.svelte";
   import Button from "$lib/components/button.svelte";
   import Select from "$lib/components/select.svelte";
@@ -62,8 +63,12 @@
   let toastMessage = "";
   let toastType = "info";
 
+  // Generative UI component queue - stores components to mount after DOM updates
+  /** @type {Array<{id: string, component: any, data: any}>} */
+  let pendingComponents = [];
+
 //very basic system prompt to test speed vs terimal interface
-  const systemMsg = `You are a helpful assistant and like really responsing with emojies. You job will be to help write better content for the user. Always return markdown formatted responses.`;
+  const systemMsg = `You are Olly, a helpful AI assistant. You have access to external tools for checking calendar status, creating events, fetching events, and checking weather. Always return markdown formatted responses.You like to use emojis when appropriate. The default location is Westford,MA.`;
 
   
   onMount(async () => {
@@ -523,9 +528,70 @@
     
   }
 
+  /**
+   * Mount all pending generative UI components to their containers
+   * Called after responseMarked is updated and DOM is refreshed
+   */
+  async function mountPendingComponents() {
+    if (pendingComponents.length === 0) return;
+    
+    await tick();
+    
+    for (const pending of pendingComponents) {
+      const container = document.getElementById(pending.id);
+      if (container && !container.hasChildNodes()) {
+        console.log(`🎨 Mounting component to container: ${pending.id}`);
+        // Svelte 5 uses mount() instead of new Component()
+        mount(pending.component, {
+          target: container,
+          props: { data: pending.data }
+        });
+      }
+    }
+  }
+
+  /**
+   * Process tool result and check if it contains component data
+   * @param {string} toolResult - JSON string result from tool execution
+   * @param {string} toolName - Name of the tool that was executed
+   * @returns {{ hasComponent: boolean, componentName: string | null, componentData: any | null, markdown: string }}
+   */
+  function processToolResult(toolResult, toolName) {
+    try {
+      const parsed = JSON.parse(toolResult);
+      
+      // Check if result has a _component field
+      if (parsed._component && hasComponent(parsed._component)) {
+        console.log(`🎨 Component detected: ${parsed._component}`);
+        return {
+          hasComponent: true,
+          componentName: parsed._component,
+          componentData: parsed,
+          markdown: parsed.message || ''
+        };
+      }
+      
+      return {
+        hasComponent: false,
+        componentName: null,
+        componentData: null,
+        markdown: ''
+      };
+    } catch (error) {
+      console.log('Tool result is not JSON, treating as plain text');
+      return {
+        hasComponent: false,
+        componentName: null,
+        componentData: null,
+        markdown: ''
+      };
+    }
+  }
+
   async function callOllama() {
     // Reset scroll override for new message
     userScrolledUp = false;
+    // Note: Do NOT clear pendingComponents - we need to re-mount them after DOM updates
 
     userMsg = document.querySelector("#prompt").textContent || "";
     const messageId = Date.now(); // Unique ID for this message
@@ -541,6 +607,8 @@
 
     // Update responseMarked immediately so user sees their message
     responseMarked = marked.parse(streamedGreeting);
+    // Re-mount any existing generative UI components after DOM update
+    mountPendingComponents();
 
     // Apply animation only to the new message, once
     requestAnimationFrame(() => {
@@ -647,6 +715,8 @@
               lastChatResponse += part.message.content;
               currentMessage.content += part.message.content;
               responseMarked = marked.parse(streamedGreeting);
+              // Re-mount any pending generative UI components after DOM update
+              mountPendingComponents();
             }
 
             // Track tokens
@@ -665,6 +735,7 @@
             // Add tool call indicator to UI
             streamedGreeting += `\n\n*🔍 Using tools: ${toolCalls.map(tc => tc.function.name).join(', ')}...*\n\n`;
             responseMarked = marked.parse(streamedGreeting);
+            mountPendingComponents();
 
             // Add assistant message with tool calls to conversation
             chatConvo[countConvo++] = {
@@ -683,6 +754,9 @@
                 const result = await executeTool(toolName, toolArgs);
                 console.log(`✅ Tool ${toolName} result:`, result);
 
+                // Process tool result to check for component data
+                const toolResultInfo = processToolResult(result, toolName);
+                
                 // Add tool result to conversation
                 chatConvo[countConvo++] = {
                   role: 'tool',
@@ -690,9 +764,28 @@
                   tool_name: toolName
                 };
 
-                // Show tool result in UI (optional, can be removed for cleaner output)
-                // streamedGreeting += `\n*Tool ${toolName} completed*\n`;
-                // responseMarked = marked.parse(streamedGreeting);
+                // If result contains component data, render it in the UI
+                if (toolResultInfo.hasComponent && toolResultInfo.componentName) {
+                  const Component = getComponent(toolResultInfo.componentName);
+                  if (Component) {
+                    console.log(`🎨 Rendering component: ${toolResultInfo.componentName}`);
+                    // Create a unique container for this component
+                    // Use double newlines to ensure markdown parsing works for content after the component
+                    const componentId = `component-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    streamedGreeting += `\n\n<div id="${componentId}" class="component-container"></div>\n\n`;
+                    responseMarked = await Promise.resolve(marked.parse(streamedGreeting));
+                    
+                    // Add to pending components queue for mounting after DOM updates
+                    pendingComponents.push({
+                      id: componentId,
+                      component: Component,
+                      data: toolResultInfo.componentData
+                    });
+                    
+                    // Mount immediately after this update
+                    await mountPendingComponents();
+                  }
+                }
 
               } catch (error) {
                 console.error(`❌ Tool execution error:`, error);
@@ -717,6 +810,7 @@
           console.warn('⚠️ Max agent loops reached');
           streamedGreeting += `\n\n*Maximum tool iterations reached.*\n`;
           responseMarked = marked.parse(streamedGreeting);
+          mountPendingComponents();
         }
 
         console.log("streamGreet:", streamedGreeting);
@@ -731,6 +825,8 @@
       } finally {
         isStreaming = false;
         responseMarked = marked.parse(streamedGreeting);
+        // Final mount of any pending components
+        await mountPendingComponents();
         Utils.addCopyButtonToPre();
       }
     }

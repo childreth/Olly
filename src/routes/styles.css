@@ -184,6 +184,7 @@ ul {
   margin: 0;
   line-height: 2rem;
   margin-block-end: 1rem;
+  margin-block-start: .5rem;
 
   ul {
     margin-block-start: 0.5rem;

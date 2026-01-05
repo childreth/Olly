@@ -193,6 +193,7 @@ export function supportsToolCalling(modelName) {
     // Mistral family
     /mistral/i,
     /mixtral/i,
+    /ministral/i,
     /mistral-nemo/i,
     
     // Command R family
@@ -353,9 +354,10 @@ async function getWeather(args) {
     }));
     
     const result = {
+      _component: 'WeatherCard',
       message: days === 1 
-        ? `Current weather forecast for ${displayName}. Provide a clear, concise summary of the weather conditions.`
-        : `${days}-day weather forecast for ${displayName}. Provide a helpful summary of the weather conditions over the forecast period.`,
+        ? `Weather forecast for ${displayName} is displayed above in a visual card. Do NOT repeat the weather details - just acknowledge the forecast is shown and offer to help with anything else.`
+        : `${days}-day weather forecast for ${displayName} is displayed above in a visual card. Do NOT repeat the weather details - just acknowledge the forecast is shown and offer to help with anything else.`,
       location: displayName,
       coordinates: { lat, lon },
       days: days,
