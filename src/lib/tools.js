@@ -356,7 +356,7 @@ async function getWeather(args) {
     const result = {
       _component: 'WeatherCard',
       message: days === 1 
-        ? `Weather forecast for ${displayName} is displayed above in a visual card. Do NOT repeat the weather details - just acknowledge the forecast is shown and offer to help with anything else.`
+        ? `Weather forecast for ${displayName} is displayed above in a visual card. Do NOT repeat the weather details - just acknowledge the forecast is shown, write a short summary sentence for all days requested and offer to help with anything else.`
         : `${days}-day weather forecast for ${displayName} is displayed above in a visual card. Do NOT repeat the weather details - just acknowledge the forecast is shown and offer to help with anything else.`,
       location: displayName,
       coordinates: { lat, lon },
