@@ -59,14 +59,14 @@ export const tools = [
  */
 export async function executeTool(toolName, args) {
   console.log(`🔧 Executing tool: ${toolName}`, args);
-  
+
   switch (toolName) {
     case 'getCalendarEvents':
       return await getCalendarEvents(args);
-    
+
     case 'getWeather':
       return await getWeather(args);
-    
+
     default:
       throw new Error(`Unknown tool: ${toolName}`);
   }
@@ -79,18 +79,18 @@ export async function executeTool(toolName, args) {
  */
 async function getCalendarEvents(args) {
   const daysAhead = args.daysAhead || 14;
-  
+
   try {
     // Check permission first
     const permissionStatus = await invoke("plugin:calendar|check_permission");
     console.log(`📅 Calendar permission status: ${permissionStatus}`);
-    
+
     // If permission is not determined, try to request it
     if (permissionStatus === "prompt") {
       console.log("📅 Permission not determined, requesting...");
       const permissionResponse = await invoke("plugin:calendar|request_permission");
       console.log("📅 Permission response:", permissionResponse);
-      
+
       if (!permissionResponse.granted) {
         return JSON.stringify({
           error: "Calendar access denied",
@@ -115,21 +115,21 @@ async function getCalendarEvents(args) {
         permissionStatus
       });
     }
-    
+
     // Fetch events
     const response = await invoke("plugin:calendar|fetch_events", {
       payload: { daysAhead }
     });
-    
+
     const events = response.events || [];
-    
+
     if (events.length === 0) {
       return JSON.stringify({
         message: `No events found in the next ${daysAhead} days.`,
         events: []
       });
     }
-    
+
     // Format events for better AI understanding
     const formattedEvents = events.map(event => ({
       title: event.title,
@@ -141,11 +141,11 @@ async function getCalendarEvents(args) {
       isRecurring: event.isRecurring || false,
       calendar: event.calendarTitle || null
     }));
-    
+
     // Calculate event statistics
     const recurringEvents = formattedEvents.filter(e => e.isRecurring);
     const oneTimeEvents = formattedEvents.filter(e => !e.isRecurring);
-    
+
     const result = {
       message: `Found ${events.length} event(s) in the next ${daysAhead} days: ${recurringEvents.length} recurring and ${oneTimeEvents.length} one-time events. When summarizing, make sure to include BOTH recurring and one-time events. Format any event data you show using code blocks for better readability.`,
       daysAhead,
@@ -154,13 +154,13 @@ async function getCalendarEvents(args) {
       oneTimeCount: oneTimeEvents.length,
       events: formattedEvents
     };
-    
+
     // Log full response for debugging
     console.log('📅 Calendar tool response:', JSON.stringify(result, null, 2));
     console.log(`📊 Event breakdown: ${oneTimeEvents.length} one-time, ${recurringEvents.length} recurring`);
-    
+
     return JSON.stringify(result);
-    
+
   } catch (error) {
     console.error("Error fetching calendar events:", error);
     return JSON.stringify({
@@ -177,66 +177,69 @@ async function getCalendarEvents(args) {
  */
 export function supportsToolCalling(modelName) {
   const lowerName = modelName.toLowerCase();
-  
+
   // Models/families known to support tool calling
   const supportedPatterns = [
     // Llama 3.1+ family (tool calling added in 3.1)
     /llama-?3\.[1-9]/i,
     /llama3\.[1-9]/i,
-    
+
     // Qwen 2.5+ family
     /qwen-?2\.[5-9]/i,
     /qwen2\.[5-9]/i,
     /qwen-?3/i,
     /qwen3/i,
-    
+
+    // LFM family
+    /lfm-?2\.5/i,
+
     // Mistral family
     /mistral/i,
     /mixtral/i,
     /ministral/i,
     /mistral-nemo/i,
-    
+
     // Command R family
     /command-?r/i,
-    
+
     // Specialized tool-calling models
     /firefunction/i,
     /functionary/i,
     /hermes.*tool/i,
     /nous.*hermes/i,
     /functiongemma/i,
-    
+
     // Granite family (all versions)
     /granite/i,
-    
+
     // Gemma 2 (9B+ models support tools)
     /gemma-?2.*9b/i,
     /gemma-?2.*27b/i,
-    
+
     // DeepSeek V2+
     /deepseek.*v2/i,
     /deepseek.*v3/i,
-    
+
     // Phi-3+ medium/large
     /phi-?3.*medium/i,
     /phi-?3.*large/i,
-    
+
     // Aya family
     /aya-?23/i,
     /aya.*expanse/i,
-    
+
     // SmolLM family (all versions)
     /smol/i
   ];
-  
+
   // Check if model matches any pattern
   const matchesPattern = supportedPatterns.some(pattern => pattern.test(lowerName));
-  
+
   if (matchesPattern) {
     console.log(`✅ Model "${modelName}" detected as tool-capable`);
     return true;
   }
-  
+
   console.log(`⚠️ Model "${modelName}" not detected as tool-capable. Tools disabled.`);
   console.log(`   To enable tools for this model, add it to the supportedPatterns in tools.js`);
   return false;
@@ -249,13 +252,13 @@ export function supportsToolCalling(modelName) {
  */
 async function getWeather(args) {
   const { location, days = 1 } = args;
-  
+
   try {
     console.log(`🌤️ Fetching weather for: ${location}, days: ${days}`);
-    
+
     // Step 1: Get coordinates from location using OpenStreetMap Nominatim API
     const { fetch: tauriFetch } = await import("@tauri-apps/plugin-http");
-    
+
     const coordinatesResponse = await tauriFetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json`,
       {
@@ -265,26 +268,26 @@ async function getWeather(args) {
         }
       }
     );
-    
+
     if (!coordinatesResponse.ok) {
       throw new Error(`Failed to fetch coordinates: ${coordinatesResponse.status}`);
     }
-    
+
     const locationData = await coordinatesResponse.json();
-    
+
     if (!locationData || locationData.length === 0) {
       return JSON.stringify({
         error: "Location not found",
         message: `Could not find coordinates for "${location}". Please try a different location format like "City, State" (e.g., "Boston, MA").`
       });
     }
-    
+
     const lat = locationData[0].lat;
     const lon = locationData[0].lon;
     const displayName = locationData[0].display_name;
-    
+
     console.log(`📍 Found coordinates: ${lat}, ${lon} for ${displayName}`);
-    
+
     // Step 2: Get weather.gov grid point data
     const pointsResponse = await tauriFetch(
       `https://api.weather.gov/points/${lat},${lon}`,
@@ -295,7 +298,7 @@ async function getWeather(args) {
         }
       }
     );
-    
+
     if (!pointsResponse.ok) {
       // Check if location is outside US (weather.gov only covers US)
       if (pointsResponse.status === 404) {
@@ -306,16 +309,16 @@ async function getWeather(args) {
       }
       throw new Error(`Weather.gov points API error: ${pointsResponse.status}`);
     }
-    
+
     const pointsData = await pointsResponse.json();
-    
+
     if (!pointsData?.properties?.forecast) {
       throw new Error('Invalid weather.gov points response structure');
     }
-    
+
     const forecastUrl = pointsData.properties.forecast;
     console.log(`🔗 Forecast URL: ${forecastUrl}`);
-    
+
     // Step 3: Get the full 7-day forecast
     const forecastResponse = await tauriFetch(forecastUrl, {
       method: 'GET',
@@ -323,23 +326,23 @@ async function getWeather(args) {
         'User-Agent': 'Olly Weather App/1.0'
       }
     });
-    
+
     if (!forecastResponse.ok) {
       throw new Error(`Weather.gov forecast API error: ${forecastResponse.status}`);
     }
-    
+
     const forecastData = await forecastResponse.json();
-    
+
     if (!forecastData?.properties?.periods) {
       throw new Error('Invalid weather.gov forecast response structure');
     }
-    
+
     const allPeriods = forecastData.properties.periods;
-    
+
     // Step 4: Filter periods based on requested days
     // Each day has 2 periods (day and night), so we need days * 2 periods
     const requestedPeriods = allPeriods.slice(0, days * 2);
-    
+
     // Format the weather data
     const formattedPeriods = requestedPeriods.map(period => ({
       name: period.name,
@@ -352,10 +355,10 @@ async function getWeather(args) {
       detailedForecast: period.detailedForecast,
       precipitationProbability: period.probabilityOfPrecipitation?.value || 0
     }));
-    
+
     const result = {
       _component: 'WeatherCard',
-      message: days === 1 
+      message: days === 1
         ? `Weather forecast for ${displayName} is displayed above in a visual card. Do NOT repeat the weather details - just acknowledge the forecast is shown, write a short summary sentence for all days requested and offer to help with anything else.`
         : `${days}-day weather forecast for ${displayName} is displayed above in a visual card. Do NOT repeat the weather details - just acknowledge the forecast is shown and offer to help with anything else.`,
       location: displayName,
@@ -364,11 +367,11 @@ async function getWeather(args) {
       periodsReturned: formattedPeriods.length,
       forecast: formattedPeriods
     };
-    
+
     console.log('🌤️ Weather tool response:', JSON.stringify(result, null, 2));
-    
+
     return JSON.stringify(result);
-    
+
   } catch (error) {
     console.error("Error fetching weather data:", error);
     return JSON.stringify({
