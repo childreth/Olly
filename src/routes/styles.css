@@ -150,6 +150,12 @@ a:hover,
   text-decoration-thickness: 2px;
 }
 
+img[alt="Generated Image"] {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--borderRadiusMD);
+}
+
 p.subtitle {
   font-size: 1.5rem;
 }

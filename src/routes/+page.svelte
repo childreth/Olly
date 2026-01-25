@@ -439,7 +439,7 @@
       const response = await openai.images.generate({
         model: selectedModel,
         prompt: prompt,
-        size: "1024x1024",
+        size: "1024x768",
         response_format: "b64_json",
       });
       console.log("Ollama response:", response);
