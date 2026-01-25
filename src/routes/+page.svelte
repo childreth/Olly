@@ -2,6 +2,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { Ollama } from "ollama/browser";
+  import OpenAI from "openai";
   import { onMount, tick, mount } from "svelte";
   import { marked } from "marked";
   import { fly } from "svelte/transition";
@@ -419,6 +420,79 @@
     }
   }
 
+  async function generateOllamaImage(prompt) {
+    try {
+      isStreaming = true;
+      lastChatResponse = "";
+
+      // Initialize OpenAI client for Ollama compatibility
+      const openai = new OpenAI({
+        baseURL: "http://localhost:11434/v1/",
+        apiKey: "ollama", // required but ignored
+        dangerouslyAllowBrowser: true
+      });
+
+      streamedGreeting += `\n\n*🎨 Generating image...*\n\n`;
+      responseMarked = marked.parse(streamedGreeting);
+      mountPendingComponents();
+
+      const response = await openai.images.generate({
+        model: selectedModel,
+        prompt: prompt,
+        size: "1024x1024",
+        response_format: "b64_json",
+      });
+      console.log("Ollama response:", response);
+      
+      // Parse response if it's a string
+      let parsedResponse = response;
+      if (typeof response === 'string') {
+        parsedResponse = JSON.parse(response);
+      }
+      
+      console.log("Parsed response:", parsedResponse);
+      console.log("Response data:", parsedResponse.data);
+      console.log("First item:", parsedResponse.data?.[0]);
+      console.log("b64_json:", parsedResponse.data?.[0]?.b64_json);
+
+      // Check multiple possible response structures
+      let base64Image = null;
+      
+      if (parsedResponse.data && parsedResponse.data[0] && parsedResponse.data[0].b64_json) {
+        base64Image = parsedResponse.data[0].b64_json;
+      } else if (parsedResponse.data && parsedResponse.data.length > 0 && parsedResponse.data[0].b64_json) {
+        base64Image = parsedResponse.data[0].b64_json;
+      } else if (Array.isArray(parsedResponse) && parsedResponse[0] && parsedResponse[0].b64_json) {
+        base64Image = parsedResponse[0].b64_json;
+      }
+
+      if (base64Image) {
+        // Display the generated image
+        streamedGreeting += `![Generated Image](data:image/png;base64,${base64Image})\n\n`;
+        streamedGreeting += `*✅ Image generated successfully*\n\n`;
+        lastChatResponse = `Generated image for: ${prompt}`;
+        
+        responseMarked = marked.parse(streamedGreeting);
+        mountPendingComponents();
+      } else {
+        console.error("Could not find b64_json in response:", JSON.stringify(response, null, 2));
+        throw new Error("No image data received from Ollama");
+      }
+
+      isStreaming = false;
+    } catch (error) {
+      console.error("Ollama image generation error:", error);
+      isStreaming = false;
+      
+      streamedGreeting += `\n\n*❌ Error generating image: ${error.message}*\n\n`;
+      responseMarked = marked.parse(streamedGreeting);
+      
+      toastMessage = `Image generation failed: ${error.message}. Make sure Ollama is running and x/z-image-turbo is installed.`;
+      toastType = "error";
+      toastVisible = true;
+    }
+  }
+
 
 
 
@@ -656,8 +730,15 @@
     // Determine provider from selected model
     const provider = selectedModelOption ? selectedModelOption.provider : 'ollama';
     
+    // Check if this is an Ollama image generation model
+    const isOllamaImageModel = selectedModel.includes('z-image-turbo') || 
+                                selectedModel.includes('image-turbo') || 
+                                selectedModel.includes('flux2-klein');
+    
     if (selectedModel === "fal-flux" || selectedModel === "Fal - Flux") {
       falImage();
+    } else if (isOllamaImageModel) {
+      generateOllamaImage(userMsg);
     } else if (provider === "claude") {
       askClaude(userMsg);
     } else if (provider === "perplexity") {
