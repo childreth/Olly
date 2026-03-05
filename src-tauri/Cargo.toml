@@ -28,7 +28,7 @@ crossbeam-channel = "0.5.15"
 idna = "1.0.0"
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
-tauri-plugin-http = "2"
+tauri-plugin-http = "2.5.6"
 tauri-plugin-os = "2"
 tauri-plugin-calendar = { path = "tauri-plugin-calendar" }
 
