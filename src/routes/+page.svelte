@@ -26,9 +26,7 @@
   // Use this to get the environment variable
 
 
-  //basic API call for testing tools
-  const API_URL = "https://rickandmortyapi.com/api/episode";
-  let selectedModel = "smollm2:1.7b";
+let selectedModel = "smollm2:1.7b";
   let selectedModelOption = null;
   let activeModel = "";
   let result = "";
@@ -244,13 +242,6 @@
     //callOllama()
   });
 
-  async function rickAndMorty() {
-    const response = await fetch(API_URL, {
-      method: "GET"
-    });
-    const data = await response.json();
-    console.log("response", data);
-  }
   // Open a selection dialog for image files
   async function showDialog() {
     try {

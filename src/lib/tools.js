@@ -28,6 +28,27 @@ export const tools = [
   {
     type: 'function',
     function: {
+      name: 'getRickAndMortyEpisode',
+      description: 'Fetch fun facts about Rick and Morty episodes. Use this when the user asks about Rick and Morty, wants to know about a specific episode, or wants a random episode fun fact.',
+      parameters: {
+        type: 'object',
+        required: [],
+        properties: {
+          name: {
+            type: 'string',
+            description: 'Search for episodes by name (e.g., "Pickle Rick", "Lawnmower Dog"). Leave empty to get a random episode.'
+          },
+          episode: {
+            type: 'string',
+            description: 'Filter by episode code (e.g., "S01E01", "S03E03"). Leave empty to search by name or get a random episode.'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'getWeather',
       description: 'Get weather forecast for a specific location. Returns current weather or multi-day forecast based on user intent. Use this when the user asks about weather, temperature, forecast, or conditions for any location.',
       parameters: {
@@ -66,6 +87,9 @@ export async function executeTool(toolName, args) {
 
     case 'getWeather':
       return await getWeather(args);
+
+    case 'getRickAndMortyEpisode':
+      return await getRickAndMortyEpisode(args);
 
     default:
       throw new Error(`Unknown tool: ${toolName}`);
@@ -243,6 +267,56 @@ export function supportsToolCalling(modelName) {
   console.log(`⚠️ Model "${modelName}" not detected as tool-capable. Tools disabled.`);
   console.log(`   To enable tools for this model, add it to the supportedPatterns in tools.js`);
   return false;
+}
+
+/**
+ * Fetch Rick and Morty episode data and fun facts
+ * @param {{ name?: string, episode?: string }} args
+ * @returns {Promise<string>} - JSON string of episode data
+ */
+async function getRickAndMortyEpisode(args) {
+  const { fetch: tauriFetch } = await import("@tauri-apps/plugin-http");
+  const BASE = 'https://rickandmortyapi.com/api/episode';
+
+  try {
+    let url = BASE;
+    const params = new URLSearchParams();
+    if (args.name) params.set('name', args.name);
+    if (args.episode) params.set('episode', args.episode);
+    if ([...params].length > 0) url += `?${params.toString()}`;
+
+    const response = await tauriFetch(url, { method: 'GET' });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return JSON.stringify({ error: 'No episodes found matching that search.' });
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // API returns either a single episode object or { results: [...] }
+    const episodes = data.results ?? [data];
+
+    // Pick a random episode from the results for variety
+    const pick = episodes[Math.floor(Math.random() * episodes.length)];
+
+    return JSON.stringify({
+      name: pick.name,
+      episode: pick.episode,
+      air_date: pick.air_date,
+      character_count: pick.characters.length,
+      url: pick.url,
+      total_results: episodes.length,
+      message: `Share fun facts about the Rick and Morty episode "${pick.name}" (${pick.episode}), which aired on ${pick.air_date} and features ${pick.characters.length} characters. Be enthusiastic and entertaining!`
+    });
+
+  } catch (error) {
+    const err = /** @type {Error} */ (error);
+    console.error('Error fetching Rick and Morty episode:', err);
+    return JSON.stringify({ error: 'Failed to fetch episode data', message: err.toString() });
+  }
 }
 
 /**
