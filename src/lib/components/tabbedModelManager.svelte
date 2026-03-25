@@ -45,7 +45,7 @@
   async function loadExternalProviders() {
     try {
       const providers = await invoke("list_api_key_providers");
-      for (const provider of providers) {
+      await Promise.all(providers.map(async (provider) => {
         const info = await invoke("get_provider_info", { provider });
         if (info) {
           const providerIndex = externalProviders.findIndex(p => p.id === provider);
@@ -53,7 +53,7 @@
             externalProviders[providerIndex].apiKey = "••••••••";
           }
         }
-      }
+      }));
     } catch (error) {
       console.error("Failed to load external providers:", error);
     }
