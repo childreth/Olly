@@ -27,15 +27,3 @@ export async function fetchApi(url, options = {}) {
     throw error;
   }
 }
-
-// Usage example:
-// import { fetchApi } from '$lib';
-// 
-// async function getData() {
-//   try {
-//     const data = await fetchApi('https://api.example.com/data');
-//     console.log(data);
-//   } catch (error) {
-//     console.error('Error fetching data:', error);
-//   }
-// }
