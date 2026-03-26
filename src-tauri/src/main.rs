@@ -259,10 +259,7 @@ async fn store_api_key_debug(
                     // Verify it was actually stored
                     match entry.get_password() {
                         Ok(retrieved) => {
-                            debug_log.push(format!(
-                                "Keyring: Retrieved password, length: {}",
-                                retrieved.len()
-                            ));
+                            debug_log.push("Keyring: Retrieved password".to_string());
                             if retrieved == api_key {
                                 debug_log.push("Keyring: VERIFICATION PASSED".to_string());
                                 return Ok(debug_log.join(" | "));
@@ -325,11 +322,8 @@ async fn get_api_key_debug(_app: tauri::AppHandle, provider: String) -> Result<S
         Ok(entry) => {
             debug_log.push("Keyring: Entry created successfully".to_string());
             match entry.get_password() {
-                Ok(api_key) => {
-                    debug_log.push(format!(
-                        "Keyring: Retrieved password, length: {}",
-                        api_key.len()
-                    ));
+                Ok(_) => {
+                    debug_log.push("Keyring: Retrieved password".to_string());
                     return Ok(format!("{} | FOUND_IN_KEYRING", debug_log.join(" | ")));
                 }
                 Err(e) => {
@@ -345,8 +339,8 @@ async fn get_api_key_debug(_app: tauri::AppHandle, provider: String) -> Result<S
     // Check file storage
     debug_log.push("Checking file storage".to_string());
     match get_api_key_file(&provider) {
-        Ok(Some(key)) => {
-            debug_log.push(format!("File: Found key, length: {}", key.len()));
+        Ok(Some(_)) => {
+            debug_log.push("File: Found key".to_string());
             Ok(format!("{} | FOUND_IN_FILE", debug_log.join(" | ")))
         }
         Ok(None) => {
@@ -707,8 +701,8 @@ async fn debug_api_keys(_app: tauri::AppHandle) -> Result<String, String> {
 
         if let Ok(entry) = Entry::new(service, &username) {
             match entry.get_password() {
-                Ok(key) => {
-                    info!("Found {} in keyring, key length: {}", provider, key.len());
+                Ok(_) => {
+                    info!("Found {} in keyring", provider);
                     keyring_providers.push(provider.to_string());
                 }
                 Err(e) => {
@@ -721,12 +715,8 @@ async fn debug_api_keys(_app: tauri::AppHandle) -> Result<String, String> {
 
         // Check file storage too
         match get_api_key_file(provider) {
-            Ok(Some(key)) => {
-                info!(
-                    "Found {} in file storage, key length: {}",
-                    provider,
-                    key.len()
-                );
+            Ok(Some(_)) => {
+                info!("Found {} in file storage", provider);
                 file_providers.push(provider.to_string());
             }
             Ok(None) => {
@@ -1368,11 +1358,7 @@ fn store_api_key_file(provider: &str, api_key: &str) -> Result<(), String> {
 
     // Simple XOR encoding for basic obfuscation (not real security)
     let encoded_key = simple_encode(api_key);
-    info!(
-        "Encoded key, original length: {}, encoded length: {}",
-        api_key.len(),
-        encoded_key.len()
-    );
+    info!("Encoded key for storage");
 
     let key_file = keys_dir.join(format!("{}.key", provider));
     info!("Writing to file: {:?}", key_file);
@@ -1476,11 +1462,7 @@ fn load_api_key(_app: &tauri::AppHandle, provider: &str) -> Result<String, Strin
     // First try our new file storage system
     match get_api_key_file(provider) {
         Ok(Some(key)) => {
-            info!(
-                "Loaded {} API key from file storage (length: {})",
-                provider,
-                key.len()
-            );
+            info!("Loaded {} API key from file storage", provider);
             if key.is_empty() {
                 error!("{} API key is empty!", provider);
                 return Err(format!(
@@ -1514,9 +1496,8 @@ fn load_api_key(_app: &tauri::AppHandle, provider: &str) -> Result<String, Strin
             info!("Found {} environment variable but it's empty", env_var);
         } else {
             info!(
-                "Found {} API key in environment variable (length: {}), migrating to file storage",
-                provider,
-                key.len()
+                "Found {} API key in environment variable, migrating to file storage",
+                provider
             );
             if let Err(e) = store_api_key_file(provider, &key) {
                 error!(
@@ -1549,9 +1530,8 @@ fn load_api_key(_app: &tauri::AppHandle, provider: &str) -> Result<String, Strin
                     info!("Found {} in config but value is empty", env_var);
                 } else {
                     info!(
-                        "Found {} API key in config file (length: {}), migrating to file storage",
-                        provider,
-                        key.trim().len()
+                        "Found {} API key in config file, migrating to file storage",
+                        provider
                     );
                     if let Err(e) = store_api_key_file(provider, key.trim()) {
                         error!("Failed to migrate {} API key from config: {}", provider, e);
