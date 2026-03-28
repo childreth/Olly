@@ -18,13 +18,25 @@
   async function loadApiKeys() {
     try {
       const providers = await invoke("list_api_key_providers");
-      await Promise.all(providers.map(async (provider) => {
-        const info = await invoke("get_provider_info", { provider });
+
+      // Fetch provider info concurrently and map to results
+      const results = await Promise.all(
+        providers.map(async (provider) => {
+          const info = await invoke("get_provider_info", { provider });
+          return { provider, info };
+        })
+      );
+
+      // Batch update the keys to ensure Svelte reactivity
+      const updatedKeys = { ...apiKeys };
+      for (const { provider, info } of results) {
         if (info) {
           // Don't load the actual key for security, just mark as set
-          apiKeys[provider] = "••••••••";
+          updatedKeys[provider] = "••••••••";
         }
-      }));
+      }
+
+      apiKeys = updatedKeys;
     } catch (error) {
       console.error("Failed to load API keys:", error);
     }
