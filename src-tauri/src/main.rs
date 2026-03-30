@@ -1339,6 +1339,71 @@ fn get_keys_dir() -> PathBuf {
     PathBuf::from(home).join(".olly").join("keys")
 }
 
+// Helper to manage the encryption master key
+fn get_or_create_master_key() -> Result<[u8; 32], String> {
+    use std::fs;
+    use rand::RngCore;
+
+    let keys_dir = get_keys_dir();
+    if let Err(e) = fs::create_dir_all(&keys_dir) {
+        return Err(format!("Failed to create keys directory: {}", e));
+    }
+
+    // Set restrictive permissions on the keys directory
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = fs::metadata(&keys_dir) {
+            let mut perms = metadata.permissions();
+            perms.set_mode(0o700);
+            let _ = fs::set_permissions(&keys_dir, perms);
+        }
+    }
+
+    let master_key_path = keys_dir.join(".master.key");
+
+    // If master key exists, read it
+    if master_key_path.exists() {
+        match fs::read(&master_key_path) {
+            Ok(key) => {
+                if key.len() == 32 {
+                    let mut key_arr = [0u8; 32];
+                    key_arr.copy_from_slice(&key);
+                    return Ok(key_arr);
+                } else {
+                    error!("Master key has invalid length (expected 32 bytes)");
+                    // We'll fall through and generate a new one
+                }
+            }
+            Err(e) => {
+                return Err(format!("Failed to read master key: {}", e));
+            }
+        }
+    }
+
+    // Generate new master key
+    info!("Generating new master encryption key");
+    let mut key = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut key);
+
+    // Write new key and set strict permissions
+    match fs::write(&master_key_path, &key) {
+        Ok(_) => {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(metadata) = fs::metadata(&master_key_path) {
+                    let mut perms = metadata.permissions();
+                    perms.set_mode(0o600);
+                    let _ = fs::set_permissions(&master_key_path, perms);
+                }
+            }
+            Ok(key)
+        }
+        Err(e) => Err(format!("Failed to write master key: {}", e)),
+    }
+}
+
 // File-based storage fallback functions
 fn store_api_key_file(provider: &str, api_key: &str) -> Result<(), String> {
     use std::fs;
@@ -1356,15 +1421,25 @@ fn store_api_key_file(provider: &str, api_key: &str) -> Result<(), String> {
     }
     info!("Keys directory created/exists");
 
-    // Simple XOR encoding for basic obfuscation (not real security)
-    let encoded_key = simple_encode(api_key);
-    info!("Encoded key for storage");
+    // Secure AES-256-GCM encryption
+    let encoded_key = encrypt_api_key(api_key)?;
+    info!("Encrypted key for storage");
 
     let key_file = keys_dir.join(format!("{}.key", provider));
     info!("Writing to file: {:?}", key_file);
 
     match fs::write(&key_file, &encoded_key) {
         Ok(_) => {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(metadata) = fs::metadata(&key_file) {
+                    let mut perms = metadata.permissions();
+                    perms.set_mode(0o600);
+                    let _ = fs::set_permissions(&key_file, perms);
+                }
+            }
+
             info!("Successfully wrote key file for {}", provider);
             // Verify by reading it back
             match fs::read(&key_file) {
@@ -1405,7 +1480,7 @@ fn get_api_key_file(provider: &str) -> Result<Option<String>, String> {
 
     match fs::read(&key_file) {
         Ok(encoded_data) => {
-            let decoded_key = simple_decode(&encoded_data);
+            let decoded_key = decrypt_api_key(&encoded_data)?;
             Ok(Some(decoded_key))
         }
         Err(e) => Err(format!("Failed to read key file: {}", e)),
@@ -1431,24 +1506,52 @@ fn delete_api_key_file(provider: &str) -> Result<(), String> {
     }
 }
 
-// Simple encoding/decoding for basic obfuscation
-fn simple_encode(input: &str) -> Vec<u8> {
-    let key = b"olly_secure_2024"; // Simple XOR key
-    input
-        .bytes()
-        .enumerate()
-        .map(|(i, b)| b ^ key[i % key.len()])
-        .collect()
+// Secure encryption using AES-256-GCM
+fn encrypt_api_key(input: &str) -> Result<Vec<u8>, String> {
+    use aes_gcm::{
+        aead::{Aead, AeadCore, KeyInit},
+        Aes256Gcm, Key,
+    };
+
+    let master_key_bytes = get_or_create_master_key()?;
+    let key = Key::<Aes256Gcm>::from_slice(&master_key_bytes);
+    let cipher = Aes256Gcm::new(key);
+
+    let nonce = Aes256Gcm::generate_nonce(&mut rand::thread_rng()); // 96-bits; unique per message
+
+    let ciphertext = cipher
+        .encrypt(&nonce, input.as_bytes())
+        .map_err(|e| format!("Encryption failed: {}", e))?;
+
+    // Prepend nonce to the ciphertext
+    let mut result = nonce.to_vec();
+    result.extend_from_slice(&ciphertext);
+    Ok(result)
 }
 
-fn simple_decode(input: &[u8]) -> String {
-    let key = b"olly_secure_2024"; // Same XOR key
-    let decoded: Vec<u8> = input
-        .iter()
-        .enumerate()
-        .map(|(i, &b)| b ^ key[i % key.len()])
-        .collect();
-    String::from_utf8(decoded).unwrap_or_default()
+// Secure decryption using AES-256-GCM
+fn decrypt_api_key(input: &[u8]) -> Result<String, String> {
+    use aes_gcm::{
+        aead::{Aead, KeyInit},
+        Aes256Gcm, Key, Nonce,
+    };
+
+    if input.len() < 12 {
+        return Err("Invalid ciphertext length".to_string());
+    }
+
+    let master_key_bytes = get_or_create_master_key()?;
+    let key = Key::<Aes256Gcm>::from_slice(&master_key_bytes);
+    let cipher = Aes256Gcm::new(key);
+
+    let (nonce_bytes, ciphertext) = input.split_at(12);
+    let nonce = Nonce::from_slice(nonce_bytes);
+
+    let plaintext_bytes = cipher
+        .decrypt(nonce, ciphertext)
+        .map_err(|e| format!("Decryption failed: {}", e))?;
+
+    String::from_utf8(plaintext_bytes).map_err(|e| format!("Invalid UTF-8 in decrypted data: {}", e))
 }
 
 fn load_api_key(_app: &tauri::AppHandle, provider: &str) -> Result<String, String> {
