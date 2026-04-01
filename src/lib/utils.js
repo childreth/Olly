@@ -242,11 +242,8 @@ export function toggleTheme() {
 
 export function initTheme() {
   const savedTheme = localStorage.getItem('theme');
-  if (savedTheme) {
-    document.body.setAttribute('data-theme', savedTheme);
-  } else {
-    // Set default theme if no theme is saved
-    document.body.setAttribute('data-theme', 'light');
+  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
   }
 }
 
