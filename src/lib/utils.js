@@ -389,7 +389,6 @@ export async function getCoordinates(city) {
     console.error('Error fetching coordinates:', error);
     console.error('Error details:', error.message, error.stack);
   }
-  //console.log('WeatherCity: ',lat,lon)
 }
 export function closeSettings() {
   const settingsDiv = document.querySelector('#settings');
