@@ -351,9 +351,8 @@ export async function weatherReport(lat, lon) {
       theWeather.textContent = 'Weather unavailable'
     }
   }
-
-  //return ;
 }
+
 export async function getCoordinates(city) {
   try {
     console.log('Fetching coordinates for city:', city);
