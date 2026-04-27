@@ -5,7 +5,6 @@
 
   function handleColorChange(event) {
     color = event.target.value;
-    console.log("handleColorChange");
     // Convert hex to HSL and extract hue
     const hexToHSL = (hex) => {
       // Remove the hash if it's there
