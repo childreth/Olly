@@ -179,10 +179,6 @@ async function getCalendarEvents(args) {
       events: formattedEvents
     };
 
-    // Log full response for debugging
-    console.log('📅 Calendar tool response:', JSON.stringify(result, null, 2));
-    console.log(`📊 Event breakdown: ${oneTimeEvents.length} one-time, ${recurringEvents.length} recurring`);
-
     return JSON.stringify(result);
 
   } catch (error) {
