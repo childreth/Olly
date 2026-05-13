@@ -256,13 +256,10 @@ let selectedModel = "smollm2:1.7b";
       });
 
       if (Array.isArray(selected)) {
-        console.log("User selected multiple files:", selected);
         // Handle multiple file selection
       } else if (selected === null) {
-        console.log("User cancelled the selection");
         // Handle cancellation
       } else {
-        console.log("User selected a single file:", selected);
         // Handle single file selection
       }
     } catch (error) {
