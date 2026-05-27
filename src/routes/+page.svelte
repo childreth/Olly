@@ -71,7 +71,6 @@ let selectedModel = "smollm2:1.7b";
 
   
   onMount(async () => {
-    console.log('=== APP MOUNTED ===');
 
     // Configure marked for proper markdown rendering
     marked.setOptions({
@@ -119,19 +118,7 @@ let selectedModel = "smollm2:1.7b";
 
     Utils.getCoordinates(city);
 
-    // Test Ollama command directly
-    try {
-      console.log('=== TESTING get_ollama_models COMMAND ===');
-      const testModels = await invoke("get_ollama_models");
-      console.log('Direct test result:', testModels);
-    } catch (error) {
-      console.error('Direct test failed:', error);
-    }
-
-    console.log('=== CALLING loadModels() ===');
     await loadModels();
-    console.log('=== loadModels() COMPLETE ===');
-    console.log('Final allModels array:', allModels);
 
     const fileInput = document.querySelector("#file");
 
@@ -162,11 +149,6 @@ let selectedModel = "smollm2:1.7b";
         thumbnail.src = compressed.thumbnail;
         imagePreview?.appendChild(thumbnail);
 
-        console.log("Image compressed and ready:", {
-          originalSize: file.size,
-          compressedSize: compressed.base64.length,
-          mediaType: compressed.mediaType
-        });
       } catch (error) {
         console.error("Error processing image:", error);
         toastMessage = "Failed to process image. Please try again.";
@@ -195,7 +177,6 @@ let selectedModel = "smollm2:1.7b";
     });
 
     appWindow.listen('claude-stream-done', (event) => {
-      console.log("Claude streaming completed");
       isStreaming = false;
       responseMarked = marked.parse(streamedGreeting);
       Utils.addCopyButtonToPre();
@@ -210,7 +191,6 @@ let selectedModel = "smollm2:1.7b";
     });
 
     appWindow.listen('perplexity-stream-done', (event) => {
-      console.log("Perplexity streaming completed");
       const data = event.payload;
 
       // Add citations if present
@@ -430,7 +410,6 @@ let selectedModel = "smollm2:1.7b";
         size: "1024x768",
         response_format: "b64_json",
       });
-      console.log("Ollama response:", response);
       
       // Parse response if it's a string
       let parsedResponse = response;
@@ -438,10 +417,6 @@ let selectedModel = "smollm2:1.7b";
         parsedResponse = JSON.parse(response);
       }
       
-      console.log("Parsed response:", parsedResponse);
-      console.log("Response data:", parsedResponse.data);
-      console.log("First item:", parsedResponse.data?.[0]);
-      console.log("b64_json:", parsedResponse.data?.[0]?.b64_json);
 
       // Check multiple possible response structures
       let base64Image = null;
@@ -490,7 +465,6 @@ let selectedModel = "smollm2:1.7b";
       let backendModels = [];
       try {
         backendModels = await invoke("get_all_models");
-        console.log('Backend models:', backendModels);
       } catch (error) {
         console.warn("Failed to get backend models:", error);
       }
@@ -498,9 +472,7 @@ let selectedModel = "smollm2:1.7b";
       // Get Ollama models if available
       let ollamaModels = [];
       try {
-        console.log('Attempting to fetch Ollama models from backend...');
         ollamaModels = await invoke("get_ollama_models");
-        console.log('Ollama models response:', ollamaModels);
 
         if (ollamaModels && ollamaModels.length > 0) {
           // Keep old format for settings display
@@ -510,7 +482,6 @@ let selectedModel = "smollm2:1.7b";
             model.details?.parameter_size || "Unknown",
             model.details?.quantization_level || "Unknown"
           ]);
-          console.log(`Successfully loaded ${ollamaModels.length} Ollama models`);
         } else {
           console.warn('Ollama returned empty models list');
           loadModelNames = [];
@@ -524,9 +495,7 @@ let selectedModel = "smollm2:1.7b";
       let claudeModels = [];
       let claudeApiSuccess = false;
       try {
-        console.log('Fetching Claude models from backend...');
         const claudeResponse = await invoke("get_claude_models");
-        console.log('Claude models response:', claudeResponse);
         
         if (claudeResponse && claudeResponse.length > 0) {
           claudeModels = claudeResponse;
@@ -539,9 +508,7 @@ let selectedModel = "smollm2:1.7b";
           ]);
           loadModelNames.push(...claudeModelNames);
           claudeApiSuccess = true;
-          console.log(`Successfully loaded ${claudeModels.length} Claude models`);
         } else {
-          console.log('No Claude models returned from backend');
         }
       } catch (error) {
         console.error("Failed to get Claude models:", error);
@@ -550,15 +517,12 @@ let selectedModel = "smollm2:1.7b";
       // Add external API models to old format for settings (keeping fallback)
       loadModelNames.unshift(["Fal - Flux","Not local - External API","N/A","N/A"]);
       if (!claudeApiSuccess) {
-        console.log('No Claude models found, adding fallback');
         loadModelNames.unshift(["Claude 3.5 Sonnet","Not local - External API","N/A","N/A"]);
       }
       loadModelNames.push(...backendModels.filter(m => m.provider === "perplexity").map(m => [m.name, "Not local - External API", "N/A", "N/A"]));
 
       // Combine all models for the searchable select
       allModels = [...backendModels, ...ollamaModels, ...claudeModels];
-      console.log('All models combined:', allModels);
-      console.log('Total models loaded:', allModels.length);
 
       // If no models were loaded at all, use fallback
       if (allModels.length === 0) {
@@ -583,9 +547,7 @@ let selectedModel = "smollm2:1.7b";
 
   async function deleteModel(model) {
     const ollama = new Ollama({ host: "http://localhost:11434" });
-    let processing = ollama.ps()
-    let models = await ollama.delete({ model: model });
-    console.log("deleteModel:", processing);
+    await ollama.delete({ model: model });
     loadModels()
     
   }
@@ -602,7 +564,6 @@ let selectedModel = "smollm2:1.7b";
     for (const pending of pendingComponents) {
       const container = document.getElementById(pending.id);
       if (container && !container.hasChildNodes()) {
-        console.log(`🎨 Mounting component to container: ${pending.id}`);
         // Svelte 5 uses mount() instead of new Component()
         mount(pending.component, {
           target: container,
@@ -624,7 +585,6 @@ let selectedModel = "smollm2:1.7b";
       
       // Check if result has a _component field
       if (parsed._component && hasComponent(parsed._component)) {
-        console.log(`🎨 Component detected: ${parsed._component}`);
         return {
           hasComponent: true,
           componentName: parsed._component,
@@ -640,7 +600,6 @@ let selectedModel = "smollm2:1.7b";
         markdown: ''
       };
     } catch (error) {
-      console.log('Tool result is not JSON, treating as plain text');
       return {
         hasComponent: false,
         componentName: null,
@@ -732,7 +691,6 @@ let selectedModel = "smollm2:1.7b";
     } else if (provider === "perplexity") {
       askPerplexity(userMsg);
     } else {
-      console.log("chatConvo:", chatConvo);
       isStreaming = true;
       abortController = new AbortController();
       lastChatResponse = "";
@@ -749,7 +707,6 @@ let selectedModel = "smollm2:1.7b";
 
         while (continueLoop && loopCount < maxLoops) {
           loopCount++;
-          console.log(`🔄 Agent loop iteration ${loopCount}`);
 
           const response = await ollama.chat({
             model: selectedModel,
@@ -774,7 +731,6 @@ let selectedModel = "smollm2:1.7b";
             // Handle tool calls
             if (part.message.tool_calls) {
               toolCalls = part.message.tool_calls;
-              console.log('🔧 Tool calls detected:', toolCalls);
             }
 
             // Stream content
@@ -798,7 +754,6 @@ let selectedModel = "smollm2:1.7b";
 
           // If there are tool calls, execute them
           if (toolCalls && toolCalls.length > 0) {
-            console.log(`🔧 Executing ${toolCalls.length} tool(s)...`);
             
             // Add tool call indicator to UI
             streamedGreeting += `\n\n*🔍 Using tools: ${toolCalls.map(tc => tc.function.name).join(', ')}...*\n\n`;
@@ -818,9 +773,7 @@ let selectedModel = "smollm2:1.7b";
                 const toolName = toolCall.function.name;
                 const toolArgs = toolCall.function.arguments;
                 
-                console.log(`🔧 Calling ${toolName} with args:`, toolArgs);
                 const result = await executeTool(toolName, toolArgs);
-                console.log(`✅ Tool ${toolName} result:`, result);
 
                 // Process tool result to check for component data
                 const toolResultInfo = processToolResult(result, toolName);
@@ -836,7 +789,6 @@ let selectedModel = "smollm2:1.7b";
                 if (toolResultInfo.hasComponent && toolResultInfo.componentName) {
                   const Component = getComponent(toolResultInfo.componentName);
                   if (Component) {
-                    console.log(`🎨 Rendering component: ${toolResultInfo.componentName}`);
                     // Create a unique container for this component
                     // Use double newlines to ensure markdown parsing works for content after the component
                     const componentId = `component-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -881,10 +833,8 @@ let selectedModel = "smollm2:1.7b";
           mountPendingComponents();
         }
 
-        console.log("streamGreet:", streamedGreeting);
       } catch (error) {
         if (error.name === "AbortError") {
-          console.log("Stream was aborted");
         } else {
           console.error("Error during streaming:", error);
           streamedGreeting += `\n\n*Error: ${error.message}*\n`;
@@ -976,7 +926,6 @@ let selectedModel = "smollm2:1.7b";
 
   function changeModel() {
     //reset the chat for new conversation+model
-    console.log("model reset");
     countConvo = 0;
     chatConvo = [];
     lastChatResponse = "";
