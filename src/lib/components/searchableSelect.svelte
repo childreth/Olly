@@ -98,6 +98,9 @@
         event.preventDefault();
         if (selectedIndex >= 0 && filteredOptions[selectedIndex]) {
           selectOption(filteredOptions[selectedIndex]);
+        } else if (searchTerm !== "" && filteredOptions.length > 0) {
+          // Nothing highlighted yet: pick the top typeahead match
+          selectOption(filteredOptions[0]);
         }
         break;
       case "Escape":
@@ -127,7 +130,8 @@
       {#each filteredOptions as option, index}
         <div
           class="option {index === selectedIndex ? 'highlighted' : ''}"
-          on:click={() => selectOption(option)}
+          on:mousedown|preventDefault={() => selectOption(option)}
+          on:mouseenter={() => (selectedIndex = index)}
           on:keydown
         >
           <div class="option-main">
