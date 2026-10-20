@@ -9,6 +9,8 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::Emitter;
 
+mod mcp;
+
 // API Key Management Module
 mod api_keys {
     use super::*;
@@ -987,6 +989,8 @@ async fn get_ollama_models() -> Result<Vec<serde_json::Value>, String> {
                                     formatted_date
                                 ),
                                 "provider": "ollama",
+                                // e.g. ["completion","tools","vision"]; used to decide whether to offer MCP tools
+                                "capabilities": model.get("capabilities").cloned().unwrap_or(serde_json::Value::Null),
                                 "details": {
                                     "modified_at": modified_at,
                                     "parameter_size": details.get("parameter_size").and_then(|p| p.as_str()).unwrap_or("Unknown"),
@@ -1044,6 +1048,7 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_calendar::init())
+        .manage(mcp::McpState::default())
         .invoke_handler(tauri::generate_handler![
             greet,
             ask_claude,
@@ -1069,7 +1074,11 @@ fn main() {
             store_api_key_debug,
             get_api_key_debug,
             migrate_claude_key,
-            summarize_calendar_events
+            summarize_calendar_events,
+            mcp::mcp_connect,
+            mcp::mcp_list_tools,
+            mcp::mcp_call_tool,
+            mcp::mcp_disconnect
         ])
         .setup(|app| {
             info!("Running setup function");
