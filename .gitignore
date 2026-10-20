@@ -14,3 +14,6 @@ vite.config.ts.timestamp-*
 #src-tauri/Config.toml
 
 
+
+# Car-shopper WebMCP prototype: kept locally, not part of Olly
+car-shopper-webmcp/
