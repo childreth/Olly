@@ -1007,3 +1007,63 @@ input[type="file"] {
 .hide {
   display: none !important;
 }
+/* MCP tool calls rendered inline in the transcript */
+.tool-call {
+  margin: 0.5rem 0;
+  border: 1px solid var(--tertiary);
+  border-radius: var(--borderRadiusXS);
+  background-color: var(--surface-2);
+  font-size: var(--fontSizeSmall);
+}
+
+.tool-call summary {
+  cursor: pointer;
+  padding: 0.375rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.tool-call__server {
+  color: var(--secondary);
+}
+
+.tool-call__state {
+  margin-left: auto;
+  font-size: var(--fontSizeXS);
+  color: var(--secondary);
+}
+
+.tool-call--running .tool-call__state {
+  animation: tool-call-pulse 1.2s ease-in-out infinite;
+}
+
+.tool-call--error {
+  border-color: #d9534f;
+}
+
+.tool-call--error .tool-call__state {
+  color: #d9534f;
+  font-weight: 600;
+}
+
+.tool-call__body {
+  padding: 0 0.75rem 0.5rem;
+}
+
+.tool-call__label {
+  font-size: var(--fontSizeXS);
+  color: var(--secondary);
+  margin-top: 0.5rem;
+}
+
+.tool-call pre {
+  max-height: 16rem;
+  overflow: auto;
+  margin: 0.25rem 0 0;
+}
+
+@keyframes tool-call-pulse {
+  50% { opacity: 0.4; }
+}

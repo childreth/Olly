@@ -8,6 +8,15 @@
   import { fly } from "svelte/transition";
   import * as Utils from "$lib/utils.js";
   import { tools, executeTool, supportsToolCalling } from "$lib/tools.js";
+  import {
+    getActiveMcpTools,
+    callMcpTool,
+    connectEnabledServers,
+    reconnectStaleServers,
+    truncate,
+    MAX_RESULT_CHARS_FOR_MODEL,
+    MAX_RESULT_CHARS_FOR_UI
+  } from "$lib/mcp.js";
   import { hasComponent, getComponent } from "$lib/components/generative/componentRegistry.js";
   import SendButton from "$lib/components/sendButton.svelte";
   import Button from "$lib/components/button.svelte";
@@ -17,6 +26,7 @@
   import Toast from "$lib/components/toast.svelte";
   import SearchableSelect from "$lib/components/searchableSelect.svelte";
   import TabbedModelManager from "$lib/components/tabbedModelManager.svelte";
+  import McpSettings from "$lib/components/mcpSettings.svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   
 
@@ -27,6 +37,7 @@
 
 
 let selectedModel = "smollm2:1.7b";
+  /** @type {any} */
   let selectedModelOption = null;
   let activeModel = "";
   let result = "";
@@ -39,6 +50,7 @@ let selectedModel = "smollm2:1.7b";
   let lastChatResponse = "";
   let streamedGreeting = "";
   let responseMarked = "";
+  /** @type {any[]} */
   let chatConvo = [];
   let tokenSpeed = 0;
   let tokenCount = 0;
@@ -117,6 +129,9 @@ let selectedModel = "smollm2:1.7b";
 
 
     Utils.getCoordinates(city);
+
+    // Connect enabled MCP servers in the background; chat works without them.
+    connectEnabledServers();
 
     await loadModels();
 
@@ -609,6 +624,60 @@ let selectedModel = "smollm2:1.7b";
     }
   }
 
+  /** @param {string} text */
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      // Keep the whole block on one line: marked ends raw HTML blocks at a blank line.
+      .replace(/\r?\n/g, "&#10;");
+  }
+
+  /**
+   * Inline, collapsible view of one MCP tool call.
+   * @param {{ name: string, serverName: string | null, args: any, state: 'running' | 'ok' | 'error' | 'stopped', result?: string }} call
+   */
+  function toolCallHtml(call) {
+    const labels = { running: "running…", ok: "done", error: "error", stopped: "stopped" };
+    let argsText;
+    try {
+      argsText = typeof call.args === "string" ? call.args : JSON.stringify(call.args ?? {}, null, 2);
+    } catch {
+      argsText = String(call.args);
+    }
+    const result = call.result !== undefined
+      ? `<div class="tool-call__label">${call.state === "error" ? "Error" : "Result"}</div><pre class="tool-call__result">${escapeHtml(truncate(call.result, MAX_RESULT_CHARS_FOR_UI))}</pre>`
+      : "";
+    const server = call.serverName ? `<span class="tool-call__server">${escapeHtml(call.serverName)}</span>` : "";
+    return `<details class="tool-call tool-call--${call.state}"${call.state === "error" ? " open" : ""}><summary><span class="tool-call__icon" aria-hidden="true">⚙</span> ${server}<code>${escapeHtml(call.name)}</code> <span class="tool-call__state">${labels[call.state]}</span></summary><div class="tool-call__body"><div class="tool-call__label">Arguments</div><pre>${escapeHtml(argsText)}</pre>${result}</div></details>`;
+  }
+
+  /** Render the transcript and remount generative components. */
+  function renderTranscript() {
+    responseMarked = /** @type {string} */ (marked.parse(streamedGreeting));
+    mountPendingComponents();
+  }
+
+  /**
+   * Reject when the signal aborts, so Stop doesn't wait on a slow tool.
+   * @template T
+   * @param {Promise<T>} promise
+   * @param {AbortSignal} signal
+   * @returns {Promise<T>}
+   */
+  function untilAborted(promise, signal) {
+    return new Promise((resolve, reject) => {
+      const abortError = () => Object.assign(new Error("Stopped"), { name: "AbortError" });
+      if (signal.aborted) return reject(abortError());
+      const onAbort = () => reject(abortError());
+      signal.addEventListener("abort", onAbort, { once: true });
+      promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+    });
+  }
+
   async function callOllama() {
     // Reset scroll override for new message
     userScrolledUp = false;
@@ -699,27 +768,71 @@ let selectedModel = "smollm2:1.7b";
       // Note: Tool calling (especially calendar) may not work in dev mode due to missing Info.plist bundle
       const useTools = supportsToolCalling(selectedModel);
 
+      // MCP tools: offered only to models whose Ollama capabilities include "tools"
+      // (name-pattern check as fallback for Ollama versions without capabilities).
+      const modelOption = selectedModelOption || allModels.find((m) => m.id === selectedModel);
+      const capabilities = modelOption?.capabilities;
+      const mcpCapable = Array.isArray(capabilities) ? capabilities.includes("tools") : useTools;
+      // Retry servers that were down (e.g. Weft started after Olly); don't hold the chat up.
+      await Promise.race([reconnectStaleServers(), new Promise((r) => setTimeout(r, 2000))]);
+      const mcp = getActiveMcpTools();
+      const mcpTools = mcpCapable ? mcp.ollamaTools : [];
+      const mcpIndex = mcpCapable ? mcp.index : new Map();
+      const offeredTools = [...(useTools ? tools : []), ...mcpTools];
+
+      // Server instructions ride along in the system prompt (refreshed each turn).
+      if (chatConvo[0]?.role === "system") {
+        chatConvo[0].content = mcpTools.length
+          ? `${systemMsg} Your model name is "${selectedModel}".${mcp.instructions}`
+          : systemMsg;
+      }
+      if (mcp.ollamaTools.length && !mcpCapable) {
+        streamedGreeting += `\n\n*MCP tools are not available with ${selectedModel}: it doesn't support tool calling.*\n\n`;
+        renderTranscript();
+      }
+
       try {
         // Agent loop for tool calling
         let continueLoop = true;
         let loopCount = 0;
-        const maxLoops = 5; // Prevent infinite loops
+        const maxLoops = mcpTools.length ? 10 : 5; // Prevent infinite loops
+        let parseRetries = 0;
 
         while (continueLoop && loopCount < maxLoops) {
           loopCount++;
+          if (abortController.signal.aborted) break;
 
-          const response = await ollama.chat({
+          let response;
+          try {
+            response = await ollama.chat({
             model: selectedModel,
             messages: chatConvo,
             stream: true,
-            tools: useTools ? tools : undefined,
+            tools: offeredTools.length ? offeredTools : undefined,
             options: {
               temperature: 0.9,
             },
             signal: abortController.signal,
           });
+          } catch (chatError) {
+            // Small models sometimes emit tool calls Ollama can't parse. Tell the
+            // model and let it try again once instead of ending the turn.
+            const message = String(/** @type {any} */ (chatError)?.message || chatError);
+            if (mcpTools.length && parseRetries < 1 && /tool|parse|json/i.test(message)) {
+              parseRetries++;
+              streamedGreeting += `\n\n*⚠️ The model produced an invalid tool call (${escapeHtml(message)}). Retrying…*\n\n`;
+              renderTranscript();
+              chatConvo[countConvo++] = {
+                role: "system",
+                content: `Your last tool call could not be parsed: ${message}. Call a tool again with valid JSON arguments, or answer without tools.`
+              };
+              continue;
+            }
+            throw chatError;
+          }
 
           let currentMessage = { role: 'assistant', content: '' };
+          /** @type {any[]} */
           let toolCalls = [];
 
           for await (const part of response) {
@@ -728,9 +841,9 @@ let selectedModel = "smollm2:1.7b";
               break;
             }
 
-            // Handle tool calls
+            // Handle tool calls (some models stream them across several chunks)
             if (part.message.tool_calls) {
-              toolCalls = part.message.tool_calls;
+              toolCalls = mcpTools.length ? [...toolCalls, ...part.message.tool_calls] : part.message.tool_calls;
             }
 
             // Stream content
@@ -752,13 +865,19 @@ let selectedModel = "smollm2:1.7b";
             }
           }
 
+          // Stopped mid-stream: don't run tools the user no longer wants.
+          if (abortController.signal.aborted) break;
+
           // If there are tool calls, execute them
           if (toolCalls && toolCalls.length > 0) {
             
-            // Add tool call indicator to UI
-            streamedGreeting += `\n\n*🔍 Using tools: ${toolCalls.map(tc => tc.function.name).join(', ')}...*\n\n`;
-            responseMarked = marked.parse(streamedGreeting);
-            mountPendingComponents();
+            // Add tool call indicator to UI (MCP calls get their own inline blocks)
+            const localCalls = toolCalls.filter(tc => !mcpIndex.has(tc.function?.name));
+            if (localCalls.length > 0) {
+              streamedGreeting += `\n\n*🔍 Using tools: ${localCalls.map(tc => tc.function?.name).join(', ')}...*\n\n`;
+              responseMarked = marked.parse(streamedGreeting);
+              mountPendingComponents();
+            }
 
             // Add assistant message with tool calls to conversation
             chatConvo[countConvo++] = {
@@ -768,7 +887,44 @@ let selectedModel = "smollm2:1.7b";
             };
 
             // Execute each tool and add results to conversation
+            let stopped = false;
             for (const toolCall of toolCalls) {
+              if (stopped) {
+                chatConvo[countConvo++] = { role: 'tool', content: 'Cancelled: the user stopped the response.', tool_name: toolCall.function?.name };
+                continue;
+              }
+
+              if (mcpIndex.has(toolCall.function?.name)) {
+                const name = toolCall.function.name;
+                /** @type {{ name: string, serverName: string | null, args: any, state: 'running' | 'ok' | 'error' | 'stopped', result?: string }} */
+                const call = { name, serverName: mcpIndex.get(name)?.serverName ?? null, args: toolCall.function.arguments, state: 'running' };
+                let block = toolCallHtml(call);
+                streamedGreeting += `\n\n${block}\n\n`;
+                renderTranscript();
+                const updateBlock = (/** @type {typeof call} */ next) => {
+                  const html = toolCallHtml(next);
+                  streamedGreeting = streamedGreeting.replace(block, () => html);
+                  block = html;
+                  renderTranscript();
+                };
+
+                try {
+                  const outcome = await untilAborted(callMcpTool(mcpIndex, name, toolCall.function.arguments), abortController.signal);
+                  updateBlock({ ...call, args: outcome.args, state: outcome.isError ? 'error' : 'ok', result: outcome.text || '(empty result)' });
+                  chatConvo[countConvo++] = {
+                    role: 'tool',
+                    content: (outcome.isError ? 'Error: ' : '') + truncate(outcome.text || '(empty result)', MAX_RESULT_CHARS_FOR_MODEL),
+                    tool_name: name
+                  };
+                } catch (error) {
+                  // Only an abort reaches here; callMcpTool never throws.
+                  updateBlock({ ...call, state: 'stopped' });
+                  chatConvo[countConvo++] = { role: 'tool', content: 'Cancelled: the user stopped the response.', tool_name: name };
+                  stopped = true;
+                }
+                continue;
+              }
+
               try {
                 const toolName = toolCall.function.name;
                 const toolArgs = toolCall.function.arguments;
@@ -817,16 +973,22 @@ let selectedModel = "smollm2:1.7b";
               }
             }
 
+            if (stopped) break;
+
             // Continue loop to get final response with tool results
             continueLoop = true;
             lastChatResponse = ""; // Reset for next iteration
           } else {
             // No tool calls, we're done
             continueLoop = false;
+            if (loopCount > 1 && mcpTools.length && !currentMessage.content.trim()) {
+              streamedGreeting += `\n\n*The model finished without a reply.*\n`;
+              renderTranscript();
+            }
           }
         }
 
-        if (loopCount >= maxLoops) {
+        if (loopCount >= maxLoops && continueLoop) {
           console.warn('⚠️ Max agent loops reached');
           streamedGreeting += `\n\n*Maximum tool iterations reached.*\n`;
           responseMarked = marked.parse(streamedGreeting);
@@ -951,10 +1113,11 @@ let selectedModel = "smollm2:1.7b";
   }
   function stopStreaming() {
     if (isStreaming) {
+      // Also stops a running tool-call loop: the loop checks the signal between
+      // steps and pending MCP calls stop waiting immediately.
       abortController.abort();
+      ollama.abort();
       isStreaming = false;
-      sendBtn.disabled = false;
-      sendBtn.textContent = "Send";
     }
   }
 
@@ -986,6 +1149,7 @@ let selectedModel = "smollm2:1.7b";
         {loadModelNames} 
         onModelDeleted={loadModels}
       />
+      <McpSettings />
   </section>
   </div>
   
