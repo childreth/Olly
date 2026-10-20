@@ -766,13 +766,15 @@ let selectedModel = "smollm2:1.7b";
 
       // Check if model supports tool calling
       // Note: Tool calling (especially calendar) may not work in dev mode due to missing Info.plist bundle
-      const useTools = supportsToolCalling(selectedModel);
-
       // MCP tools: offered only to models whose Ollama capabilities include "tools"
       // (name-pattern check as fallback for Ollama versions without capabilities).
       const modelOption = selectedModelOption || allModels.find((m) => m.id === selectedModel);
       const capabilities = modelOption?.capabilities;
-      const mcpCapable = Array.isArray(capabilities) ? capabilities.includes("tools") : useTools;
+      const reportsTools = Array.isArray(capabilities) ? capabilities.includes("tools") : null;
+      // Ollama rejects `tools` for models without the capability (e.g. smollm2:360m), so
+      // trust its report over the name patterns when it has one.
+      const useTools = reportsTools !== false && supportsToolCalling(selectedModel);
+      const mcpCapable = reportsTools ?? useTools;
       // Retry servers that were down (e.g. Weft started after Olly); don't hold the chat up.
       await Promise.race([reconnectStaleServers(), new Promise((r) => setTimeout(r, 2000))]);
       const mcp = getActiveMcpTools();
@@ -1145,11 +1147,11 @@ let selectedModel = "smollm2:1.7b";
         <Toggle  id="darkModeToggle"  />
         <ColorPicker color={themeColor} on:colorChange={handleColorChange} />
       </p>
+      <McpSettings />
       <TabbedModelManager 
         {loadModelNames} 
         onModelDeleted={loadModels}
       />
-      <McpSettings />
   </section>
   </div>
   

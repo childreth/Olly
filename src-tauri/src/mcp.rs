@@ -544,6 +544,10 @@ mod tests {
         println!("server: {}", info["serverInfo"]);
         println!("instructions: {} chars", info["instructions"].as_str().map(|s| s.len()).unwrap_or(0));
         println!("tools ({}): {:?}", tools.len(), tools.iter().map(|t| t["name"].as_str().unwrap_or("")).collect::<Vec<_>>());
+        if let Ok(secs) = std::env::var("MCP_TEST_PAUSE") {
+            // Time to restart the server and exercise session re-initialization.
+            tokio::time::sleep(Duration::from_secs(secs.parse().unwrap_or(5))).await;
+        }
         if let Ok(tool) = std::env::var("MCP_TEST_TOOL") {
             let args: Value = serde_json::from_str(&std::env::var("MCP_TEST_ARGS").unwrap_or("{}".into())).unwrap();
             let result = call_tool(&conn, &tool, args).await;

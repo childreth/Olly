@@ -78,7 +78,7 @@
   );
 </script>
 
-<section class="mcp-settings">
+<div class="mcp-settings">
   <h2 class="text-lg">MCP servers</h2>
   <p class="hint">
     Tools from connected <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">MCP</a> servers are offered to local Ollama models that support tool calling.
@@ -88,10 +88,10 @@
     <p class="empty">No servers yet.</p>
   {/if}
 
-  <ul class="server-list">
+  <div class="server-list">
     {#each $mcpServers as server (server.id)}
       {@const status = $mcpStatus[server.id]}
-      <li class="server">
+      <div class="server">
         <div class="server-row">
           <label class="enable">
             <input
@@ -125,16 +125,16 @@
         {#if server.enabled && status?.state === "connected" && status.tools?.length}
           <details class="tools">
             <summary>Tools</summary>
-            <ul>
+            <div class="tool-list">
               {#each status.tools as tool}
-                <li><code>{tool.name}</code>{#if tool.description}<span> — {tool.description.split("\n")[0]}</span>{/if}</li>
+                <div class="tool"><code>{tool.name}</code>{#if tool.description}<span>&nbsp;— {tool.description.split("\n")[0]}</span>{/if}</div>
               {/each}
-            </ul>
+            </div>
           </details>
         {/if}
-      </li>
+      </div>
     {/each}
-  </ul>
+  </div>
 
   <form class="add-form" on:submit|preventDefault={handleAdd}>
     <div class="form-row">
@@ -174,13 +174,13 @@
       {/each}
     </div>
   {/if}
-</section>
+</div>
 
 <style>
   @import "../../routes/forms.css";
 
   .mcp-settings {
-    margin: 2rem 0 3rem;
+    margin: 0 0 2rem;
   }
 
   .hint,
@@ -282,12 +282,12 @@
     color: var(--secondary);
   }
 
-  .tools ul {
+  .tool-list {
     margin: 0.5rem 0 0;
     padding-left: 1rem;
   }
 
-  .tools li {
+  .tool {
     margin-bottom: 0.25rem;
   }
 
