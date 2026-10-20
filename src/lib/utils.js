@@ -125,50 +125,77 @@ export async function compressImage(file, maxWidth = 1024, maxHeight = 1024, qua
   });
 }
 //needs to optimize this
+/**
+ * Picks a weather icon from the forecast text by keywords, e.g. "Mostly Sunny  Day".
+ * Used when the local model is missing, fails, or gives no usable answer.
+ */
+export function iconFromForecast(weather) {
+  const text = weather.toLowerCase();
+  const night = /\bnight\b/.test(text);
+  let icon;
+  if (/thunder|t-storm/.test(text)) icon = 'thunderstorms';
+  else if (/snow|flurr|sleet|ice|blizzard|wintry/.test(text)) icon = 'snow';
+  else if (/rain|shower|drizzle/.test(text)) icon = 'rain';
+  else if (/fog|haze|mist|smoke/.test(text)) icon = 'foggy';
+  else if (/wind|breez|blustery|gust/.test(text)) icon = 'windy';
+  else if (night) icon = /clear/.test(text) && !/cloud/.test(text) ? 'clear_night' : 'cloudy_night';
+  else if (/mostly sunny|mostly clear/.test(text)) icon = 'mostly_sunny';
+  else if (/sunny|clear/.test(text) && !/partly|cloud/.test(text)) icon = 'clear_sunny';
+  else icon = 'partly_sunny';
+  return icon + '.svg';
+}
+
 export async function getIcon(weather) {
 
   const ollama = new Ollama({ host: "http://localhost:11434" });
 
-  const response = await ollama.chat({
-    model: 'gemma3:1b',
-    "options": {
-      //"seed": 101,
-      "temperature": 0,
-    },
-    messages: [
-      {
-        role: 'system', content: `You job is to match a weather condition to an icon name in the list provided.  
-      <instructions>
-        -You will be provided with a weather condition and time of day (day or night) and will return an icon name from the list below that represents the weather condition and time of day provided. 
-        - Match only to the icon names from the 'icon list'. 
-        - Do not include or add any other text.  
-        - If you are unable to find a match, return the icon name for 'sad_face'.
-        - Do not return any other text than icon names that match from the provided 'icon list'.
-        - Think about it in step. First understand the weather condition and time of day and then choose an icon name from the list that is closest to weather condition. 
-        - Use this response format: { "iconName": "icon name from list" }
-      </instructions>
-
-
-      <icon list>
-      - clear_night
-      - cloudy_night
-      - partly_cloudy_night
-      - clear_foggy
-      - foggy
-      - clear_sunny
-      - mostly_sunny
-      - partly_sunny
-      - rain
-      - snow
-      - thunderstorms
-      - windy
-      - sad_face
-      </icon list>
-
-        `},
-      { role: 'user', content: weather }
-    ],
-  })
+  let response;
+  try {
+    response = await ollama.chat({
+      model: 'qwen3.5:0.8b',
+      think: false, // a reasoning pass only slows a one-word answer
+      "options": {
+        //"seed": 101,
+        "temperature": 0,
+      },
+      messages: [
+        {
+          role: 'system', content: `You job is to match a weather condition to an icon name in the list provided.  
+        <instructions>
+          -You will be provided with a weather condition and time of day (day or night) and will return an icon name from the list below that represents the weather condition and time of day provided. 
+          - Match only to the icon names from the 'icon list'. 
+          - Do not include or add any other text.  
+          - If you are unable to find a match, return the icon name for 'sad_face'.
+          - Do not return any other text than icon names that match from the provided 'icon list'.
+          - Think about it in step. First understand the weather condition and time of day and then choose an icon name from the list that is closest to weather condition. 
+          - Use this response format: { "iconName": "icon name from list" }
+        </instructions>
+  
+  
+        <icon list>
+        - clear_night
+        - cloudy_night
+        - clear_foggy
+        - foggy
+        - clear_sunny
+        - mostly_sunny
+        - partly_sunny
+        - rain
+        - snow
+        - thunderstorms
+        - windy
+        - sad_face
+        </icon list>
+  
+          `},
+        { role: 'user', content: weather }
+      ],
+    })
+  } catch (error) {
+    // Model not installed or Ollama not running: the forecast text is enough.
+    console.warn('getIcon: model unavailable, using forecast keywords:', error);
+    return iconFromForecast(weather);
+  }
   console.log('respose', response.message.content)
   let iconName;
   try {
@@ -177,7 +204,7 @@ export async function getIcon(weather) {
 
     // First check if it's a plain string that matches a valid icon
     const validIcons = [
-      "clear_night", "cloudy_night", "partly_cloudy_night", "clear_foggy", "foggy",
+      "clear_night", "cloudy_night", "clear_foggy", "foggy",
       "clear_sunny", "mostly_sunny", "partly_sunny", "rain",
       "snow", "thunderstorms", "windy", "sad_face"
     ];
@@ -207,18 +234,25 @@ export async function getIcon(weather) {
 
     // Validate that iconName is a string
     if (typeof iconName !== 'string') {
-      console.warn(`Invalid iconName type, falling back to sad_face:`, iconName);
-      return 'sad_face.svg';
+      console.warn(`Invalid iconName type, using forecast keywords:`, iconName);
+      return iconFromForecast(weather);
     }
 
-    // Final validation
-    if (!validIcons.includes(iconName)) {
-      console.warn(`iconName "${iconName}" not valid, falling back to sad_face`);
-      iconName = 'sad_face';
+    // Final validation; sad_face means the model couldn't match, so let the keywords decide.
+    if (!validIcons.includes(iconName) || iconName === 'sad_face') {
+      console.warn(`iconName "${iconName}" not usable, using forecast keywords`);
+      return iconFromForecast(weather);
+    }
+
+    // Small models sometimes put a sun on a night forecast (or a moon on a day one).
+    const night = /\bnight\b/i.test(weather);
+    if (night ? /sunny/.test(iconName) : /_night$/.test(iconName)) {
+      console.warn(`iconName "${iconName}" contradicts the time of day, using forecast keywords`);
+      return iconFromForecast(weather);
     }
   } catch (error) {
     console.warn('getIcon fallback, unable to parse/validate response:', error);
-    return 'sad_face.svg'; // Fallback to existing icon
+    return iconFromForecast(weather);
   }
   console.log('weather: ', weather, 'iconName:', iconName)
   return iconName + '.svg'
@@ -338,10 +372,11 @@ export async function weatherReport(lat, lon) {
 
     let iconWeather = `${forecastDetails.shortForecast}  ${forecastDetails.isDaytime ? 'Day' : 'Night'}`
 
+    // Show the temperature right away; the icon follows (getIcon never throws).
+    theWeather.textContent = `${forecastDetails.name}: ${forecastDetails.temperature}°F`;
     const icon = await getIcon(iconWeather)
 
     theIcon.style.mask = `url('/weather-icons/${icon}')`;
-    theWeather.textContent = `${forecastDetails.name}: ${forecastDetails.temperature}°F`;
     // theWeatherDetails.textContent = `${forecastDetails.shortForecast}`;
   }
   catch (error) {
