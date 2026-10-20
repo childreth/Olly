@@ -86,6 +86,18 @@ All Tauri commands are invoked from the frontend via `invoke()` and defined in [
 - `greet(name)` - Basic greeting (example command)
 - `get_env(name)` - Get environment variable
 
+**MCP client** ([src-tauri/src/mcp.rs](src-tauri/src/mcp.rs)):
+- `mcp_connect(serverId, config)` - Connect + initialize + list tools. `config` is `{transport:"http", url}` or `{transport:"stdio", command, args}`. Returns `{serverInfo, instructions, protocolVersion, tools}`
+- `mcp_list_tools(serverId)`, `mcp_call_tool(serverId, name, arguments)` (returns the raw MCP `CallToolResult`), `mcp_disconnect(serverId)`
+- Hand-rolled JSON-RPC client (Streamable HTTP with JSON or SSE responses + `Mcp-Session-Id`, re-initializes once on an expired session; stdio via a spawned child). It runs in Rust so requests send **no Origin header** and need no CORS or `plugin-http` scope; loopback-only servers like Weft accept them.
+- Live test: `MCP_TEST_URL=http://127.0.0.1:4510/mcp cargo test mcp_live -- --ignored --nocapture` (or `MCP_TEST_CMD="node server.mjs"`, optional `MCP_TEST_TOOL`/`MCP_TEST_ARGS`)
+
+### MCP in chat
+- [src/lib/mcp.js](src/lib/mcp.js): server list (localStorage key `mcpServers`), status/tools stores, JSON Schema → Ollama `parameters` conversion (inlines `$ref`, flattens `anyOf`), tool names namespaced `server__tool`, `callMcpTool()` never throws (errors become tool results fed back to the model)
+- [src/lib/components/mcpSettings.svelte](src/lib/components/mcpSettings.svelte): Settings section to add/remove/enable servers, status, tool list; Weft (`http://127.0.0.1:4510/mcp`) is a suggested preset
+- `callOllama()` in `+page.svelte`: MCP tools + server `instructions` (appended to the system prompt) are offered only when the model's Ollama `capabilities` include `tools`; loop cap 10 with MCP (5 otherwise); MCP calls render as inline `<details class="tool-call">` blocks; Stop aborts the loop
+- With no MCP servers enabled the chat path is unchanged
+
 ### API Key Storage Architecture
 API keys are stored using **file-based storage** at `~/.olly/keys/` with simple XOR obfuscation:
 - Storage location: `~/.olly/keys/{provider}.key`
@@ -158,7 +170,7 @@ API keys are stored using **file-based storage** at `~/.olly/keys/` with simple 
 - Static assets in `static/` (includes weather icons in `static/weather-icons/`)
 - Component library in `src/lib/components/`
 - Tauri config: `src-tauri/tauri.conf.json`
-- Rust source: `src-tauri/src/main.rs` (single file architecture)
+- Rust source: `src-tauri/src/main.rs` (mostly single file) plus `src-tauri/src/mcp.rs` (MCP client)
 - Build artifacts: `src-tauri/target/`
 
 ## Coding Standards
