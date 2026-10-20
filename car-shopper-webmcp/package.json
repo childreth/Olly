@@ -1,0 +1,23 @@
+{
+  "name": "car-shopper-webmcp",
+  "version": "1.0.0",
+  "description": "POC for Car Shopping MCP server with anonymous dealer outreach and inbox management",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js --http",
+    "start:stdio": "node server.js --stdio",
+    "start:both": "node server.js --both",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cargurus",
+    "car-shopping",
+    "anonymous-email",
+    "webmcp"
+  ],
+  "author": "",
+  "license": "MIT"
+}
